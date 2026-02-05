@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<h2>Apply Leave</h2>
+
+<form method="post" class="form-box">
+    <label>From Date</label>
+    <input type="date" name="from_date" required>
+
+    <label>To Date</label>
+    <input type="date" name="to_date" required>
+
+    <label>Reason</label>
+    <textarea name="reason" required></textarea>
+
+    <button type="submit" class="btn">Apply</button>
+</form>
+
+{% endblock %}

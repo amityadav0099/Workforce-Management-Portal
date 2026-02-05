@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}HR Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+
+<div class="topbar">
+    <div class="logo">EMPLOYEE HR MANAGEMENT PORTAL</div>
+    <div class="top-links">
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('grievances_page') }}">Grievances</a>
+        <a href="/">Logout</a>
+    </div>
+</div>
+
+<div class="layout">
+
+    
+    <div class="sidebar">
+        <a class="active">Dashboard</a>
+<li>
+  <a href="{{ url_for('accounts.my_profile') }}">My Profile</a>
+</li>
+
+
+        <a href="{{ url_for('leaves.leave_list') }}">
+    📝 Leave Requests
+</a>
+
+        <a>Payslips</a>
+        <a href="{{ url_for('grievances_page') }}">Grievances</a>
+        <a>Reports</a>
+        <li>
+  <a href="{{ url_for('payslips.view_payslips') }}">
+    💰 Payslips
+  </a>
+</li>
+
+    </div>
+
+   
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+
+</div>
+
+</body>
+</html>
+
+
+

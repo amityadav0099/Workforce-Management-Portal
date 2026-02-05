@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Payslips{% endblock %}
+
+{% block content %}
+<h2>All Employee Payslips (HR)</h2>
+
+<table border="1" cellpadding="10 cellspacing= "0">
+  <Thead>
+  <tr>
+    <th>id</th>
+    <th>Employee</th>
+    <th>Month</th>
+    <th>Salary</th>
+    <th>HRA</th>
+    <Th>Deductions</Th>
+    <th>Net Salary</th>
+    <th>Created On</th>
+</tr>
+</Thead>
+
+  {% for p in payslips %}
+  <tr>
+    <td>{{ p.id }}</td>
+    <td>{{ p.employee }}</td>
+    <td>{{ p.month }}</td>
+    <td>₹ {{ p.salary }}</td>
+    <td> {{ p.hra }}</td>
+    <td> {{ p.deductions }}</td>
+    <td> {{ p.net_salary }}</td>
+    <td> {{ p.Created_On }}</td>
+    </tr>
+    {% else %}
+<tr>
+    <td colspan="8">No payslips found</td>
+</tr>
+  {% endfor %}
+</thead>
+</table>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Grievances{% endblock %}
+<div style="margin-bottom: 15px;">
+    <a href="{{ url_for('grievances_page') }}">All</a> |
+    <a href="{{ url_for('grievances_page', status='Open') }}">Open</a> |
+    <a href="{{ url_for('grievances_page', status='Resolved') }}">Resolved</a>
+</div>
+
+{% block content %}
+
+<h2>Grievances</h2>
+<div style="margin: 15px 0;">
+    <a href="{{ url_for('grievances_page') }}" class="btn">
+        📂 All
+    </a>
+
+    <a href="{{ url_for('grievances_page', status='Open') }}" class="btn">
+        🟡 Pending
+    </a>
+
+    <a href="{{ url_for('grievances_page', status='Resolved') }}" class="btn">
+        🟢 Resolved
+    </a>
+</div>
+
+
+{% if role == "hr" %}
+<div class="filter-box">
+    <h4>🔍 Filter Grievances</h4>
+
+    <div class="filter-actions">
+        <a href="{{ url_for('grievances_page') }}" class="filter-btn all">
+            📂 All
+        </a>
+
+        <a href="{{ url_for('grievances_page', status='Open') }}" class="filter-btn pending">
+            🟡 Pending
+        </a>
+
+        <a href="{{ url_for('grievances_page', status='Resolved') }}" class="filter-btn resolved">
+            🟢 Resolved
+        </a>
+    </div>
+    <div class="search-box">
+    <input 
+        type="text" 
+        id="searchInput"
+        placeholder="🔍 Search grievance..."
+        onkeyup="searchGrievance()"
+    >
+</div>
+
+</div>
+
+{% endif %}
+<div class="table-box">
+    </div>
+<table class="grievance-table">
+
+   <tr>
+    <th>#</th>
+    <th>Title</th>
+    <th>Description</th>
+    <th>Status</th>
+
+    {% if role == "hr" %}
+    <th>Action</th>
+    {% endif %}
+</tr>
+
+
+    {% for g in grievances %}
+<tr>
+    <td>{{ loop.index }}</td>
+    <td>{{ g.title }}</td>
+
+        <td>{{ g.description }}</td>
+ <td>
+    {% if g.status == "Open" %}
+        <span class="status-badge status-open">Open</span>
+    {% else %}
+        <span class="status-badge status-resolved">Resolved</span>
+    {% endif %}
+</td>
+
+</td>
+
+        
+
+        {% if role == "hr" %}
+        <td>
+            {% if g.status == "Open" %}
+            <a href="{{ url_for('resolve_grievance', id=g.id) }}" class="action-btn">
+         Resolve
+        </a>
+
+            {% else %}
+            ✔
+            {% endif %}
+        </td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</table>
+<script>
+function searchGrievance() {
+    let input = document.getElementById("searchInput").value.toLowerCase();
+    let rows = document.querySelectorAll("#grievanceTable tbody tr");
+
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+    });
+}
+</script>
+
+
+{% endblock %}
+
+
+
+
+
+
+
+
