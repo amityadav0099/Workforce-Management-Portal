@@ -1,36 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="max-w-6xl mx-auto mt-10 p-8 bg-white rounded-3xl shadow-xl border border-slate-100">
+    <h2 class="text-2xl font-bold text-slate-800 mb-8">Pending Leave Requests</h2>
 
-<h2>Leave Requests</h2>
-
-<table class="table">
-    <tr>
-        <th>Employee</th>
-        <th>From</th>
-        <th>To</th>
-        <th>Reason</th>
-        <th>Status</th>
-        <th>Action</th>
-    </tr>
-
-    {% for l in leaves %}
-    <tr>
-        <td>{{ l.employee }}</td>
-        <td>{{ l.from_date }}</td>
-        <td>{{ l.to_date }}</td>
-        <td>{{ l.reason }}</td>
-        <td>{{ l.status }}</td>
-        <td>
-            {% if l.status == "Pending" %}
-                <a href="{{ url_for('leaves.leave_action', id=l.id, action='approve') }}">Approve</a>
-                |
-                <a href="{{ url_for('leaves.leave_action', id=l.id, action='reject') }}">Reject</a>
-            {% else %}
-                ✔
-            {% endif %}
-        </td>
-    </tr>
-    {% endfor %}
-</table>
-
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-50">
+                    <th class="px-6 py-4">Employee</th>
+                    <th class="px-6 py-4">Dates</th>
+                    <th class="px-6 py-4">Type</th>
+                    <th class="px-6 py-4 text-center">Status</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for leave in requests %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-4 font-semibold text-slate-700">{{ leave.user.email }}</td>
+                    <td class="px-6 py-4 text-xs text-slate-500">
+                        {{ leave.start_date.strftime('%d %b') }} - {{ leave.end_date.strftime('%d %b, %Y') }}
+                    </td>
+                    <td class="px-6 py-4 text-xs font-bold text-blue-600 uppercase">{{ leave.leave_type }}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase 
+                            {% if leave.status == 'Pending' %} bg-amber-100 text-amber-600
+                            {% elif leave.status == 'Approved' %} bg-emerald-100 text-emerald-600
+                            {% else %} bg-rose-100 text-rose-600 {% endif %}">
+                            {{ leave.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        {% if leave.status == 'Pending' %}
+                        <a href="{{ url_for('leaves.leave_action', leave_id=leave.id, status='Approved') }}" class="text-xs font-bold text-emerald-600 hover:underline">Approve</a>
+                        <a href="{{ url_for('leaves.leave_action', leave_id=leave.id, status='Rejected') }}" class="text-xs font-bold text-rose-600 hover:underline">Reject</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

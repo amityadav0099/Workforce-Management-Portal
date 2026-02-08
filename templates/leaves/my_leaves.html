@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto mt-10 p-8 bg-white rounded-[2.5rem] shadow-xl border border-slate-100">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">My Leave Requests</h2>
+            <p class="text-slate-500 font-medium">Track the status of your applications</p>
+        </div>
+        <a href="{{ url_for('leaves.apply_leave') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-100">
+            + New Request
+        </a>
+    </div>
+
+    <div class="overflow-hidden rounded-3xl border border-slate-50">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-50">
+                    <th class="px-6 py-4 font-bold">Type</th>
+                    <th class="px-6 py-4 font-bold">Duration</th>
+                    <th class="px-6 py-4 font-bold">Reason</th>
+                    <th class="px-6 py-4 font-bold">Status</th>
+                    <th class="px-6 py-4 text-right font-bold">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for leave in leaves %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold">{{ leave.leave_type }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-bold text-slate-700">{{ leave.from_date.strftime('%d %b') }} - {{ leave.to_date.strftime('%d %b') }}</div>
+                        <div class="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{{ leave.from_date.year }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm text-slate-500 max-w-xs truncate">{{ leave.reason }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if leave.status == 'Pending' %}
+                            <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-100">Pending</span>
+                        {% elif leave.status == 'Approved' %}
+                            <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-100">Approved</span>
+                        {% else %}
+                            <span class="px-3 py-1 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-rose-100">Rejected</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        {% if leave.status == 'Pending' %}
+                        <a href="{{ url_for('leaves.withdraw_leave', id=leave.id) }}" class="text-rose-500 hover:text-rose-700 font-bold text-xs" onclick="return confirm('Withdraw this request?')">
+                            Withdraw
+                        </a>
+                        {% else %}
+                        <span class="text-slate-300 text-xs font-bold">Locked</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-20 text-center text-slate-400 font-bold italic">
+                        No leave history found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

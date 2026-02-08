@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | HR Portal{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto pb-20">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div class="flex justify-between items-start mb-4">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <span class="text-blue-600 text-[10px] font-black uppercase bg-blue-50 px-3 py-1 rounded-lg">Profile</span>
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Logged in as</h3>
+            <p class="text-lg font-black text-slate-800 mt-1 truncate">{{ session['email'] }}</p>
+            <a href="{{ url_for('accounts.my_profile') }}" class="inline-block mt-4 text-blue-600 text-xs font-bold hover:underline">Edit Profile →</a>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div class="flex justify-between items-start mb-4">
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <span class="text-emerald-600 text-[10px] font-black uppercase bg-emerald-50 px-3 py-1 rounded-lg">Verified</span>
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Financial Status</h3>
+            <p class="text-2xl font-black text-slate-800 mt-1">Payslips Ready</p>
+            <a href="{{ url_for('payslips.view_payslips') }}" class="inline-block mt-4 text-emerald-600 text-xs font-bold hover:underline">View Salary Slips →</a>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div class="flex justify-between items-start mb-4">
+                <div class="w-12 h-12 {{ 'bg-rose-50 text-rose-600' if active_log else 'bg-amber-50 text-amber-600' }} rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                {% if active_log %}
+                    <span class="text-rose-600 text-[10px] font-black uppercase bg-rose-50 px-3 py-1 rounded-lg animate-pulse">On Duty</span>
+                {% else %}
+                    <span class="text-amber-600 text-[10px] font-black uppercase bg-amber-50 px-3 py-1 rounded-lg">Off Duty</span>
+                {% endif %}
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Shift Control</h3>
+            
+            {% if not active_log %}
+                <form action="{{ url_for('accounts.clock_in') }}" method="POST" class="mt-2">
+                    <button type="submit" class="w-full py-3 bg-slate-900 text-white text-sm font-bold rounded-2xl hover:bg-black transition-all">Clock In</button>
+                </form>
+            {% else %}
+                <form action="{{ url_for('accounts.clock_out') }}" method="POST" class="mt-2">
+                    <button type="submit" class="w-full py-3 bg-rose-500 text-white text-sm font-bold rounded-2xl hover:bg-rose-600 transition-all">Clock Out</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative min-h-[250px] flex flex-col justify-center">
+            <div class="relative z-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-black text-slate-800">Today's Shift Insights</h3>
+                    {% if active_log %}
+                        <span class="flex items-center gap-1.5 text-emerald-500 text-[10px] font-black uppercase tracking-widest">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> Live Tracking
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if active_log %}
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                        <p class="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-widest">Clocked In At</p>
+                        <p class="text-xl font-black text-slate-700">{{ active_log.clock_in.strftime('%I:%M %p') }}</p>
+                    </div>
+                    <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
+                        <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
+                        <p id="timerDisplay" class="text-xl font-black text-blue-600">00:00:00</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center py-6 text-center">
+                    <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+                        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-slate-400 font-bold">No active shift detected.</p>
+                    <p class="text-[10px] text-slate-300 mt-1 uppercase font-black tracking-widest">Punch in to start timer</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-slate-50 rounded-full"></div>
+        </div>
+
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+            <h3 class="text-lg font-black text-slate-800 mb-6">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <a href="{{ url_for('attendance.attendance_history') }}" class="p-6 bg-slate-50 rounded-3xl text-center hover:bg-blue-50 transition-all group border border-transparent hover:border-blue-100">
+                    <p class="text-[10px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-widest mb-1">View</p>
+                    <p class="font-bold text-slate-800">Attendance Logs</p>
+                </a>
+                <a href="{{ url_for('leaves.apply_leave') }}" class="p-6 bg-slate-50 rounded-3xl text-center hover:bg-emerald-50 transition-all group border border-transparent hover:border-emerald-100">
+                    <p class="text-[10px] font-black text-slate-400 group-hover:text-emerald-600 uppercase tracking-widest mb-1">Apply</p>
+                    <p class="font-bold text-slate-800">Leave</p>
+                </a>
+            </div>
+            <div class="mt-8 pt-8 border-t border-slate-50 flex justify-between">
+                <div class="text-center px-4">
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Leave Balance</p>
+                    <p class="text-xl font-black text-slate-800">12 Days</p>
+                </div>
+                <div class="text-center px-4">
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Pending Tasks</p>
+                    <p class="text-xl font-black text-slate-800">03</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    {% if active_log %}
+    (function() {
+        // Correctly formatting time from the server model
+        const punchInStr = "{{ active_log.clock_in.strftime('%H:%M:%S') }}";
+        const [hours, minutes, seconds] = punchInStr.split(':').map(Number);
+        
+        const startTime = new Date();
+        startTime.setHours(hours, minutes, seconds);
+
+        function updateTimer() {
+            const now = new Date();
+            let diff = now - startTime;
+            
+            // Handle cross-day shift timing
+            if (diff < 0) diff += 86400000; 
+            
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            
+            const display = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            const el = document.getElementById('timerDisplay');
+            if (el) el.innerText = display;
+        }
+        
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    })();
+    {% endif %}
+</script>
+{% endblock %}

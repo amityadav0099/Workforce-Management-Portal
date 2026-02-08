@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-10">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800">Operational Reports</h2>
+            <p class="text-slate-500 font-medium">Visualizing company-wide HR metrics and trends.</p>
+        </div>
+        <button onclick="window.print()" class="bg-white border border-slate-200 px-6 py-3 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            Print Report
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800 mb-6">Leave Distribution</h3>
+            <canvas id="leaveChart" height="250"></canvas>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800 mb-6">Grievance Resolution</h3>
+            <canvas id="grievanceChart" height="250"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Leave Chart Initialization
+    new Chart(document.getElementById('leaveChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Sick', 'Casual', 'Earned'],
+            datasets: [{
+                data: [12, 19, 7],
+                backgroundColor: ['#3b82f6', '#fbbf24', '#10b981'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Grievance Chart Initialization
+    new Chart(document.getElementById('grievanceChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{
+                label: 'Resolved Tickets',
+                data: [5, 8, 12, 15],
+                backgroundColor: '#6366f1',
+                borderRadius: 10
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+</script>
+{% endblock %}

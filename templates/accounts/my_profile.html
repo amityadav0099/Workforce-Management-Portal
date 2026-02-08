@@ -1,112 +1,271 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Edit Profile</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}My Profile | HR Portal{% endblock %}
 
-<div class="container mt-4">
-    <h4 class="mb-3">HRM / Edit your profile</h4>
+{% block content %}
+<div class="max-w-6xl mx-auto pb-20 px-4">
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">My Profile</h1>
+            <p class="text-slate-500 font-medium tracking-tight">Complete your profile to ensure seamless payroll and verification.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg uppercase tracking-widest">Employee ID: #{{ session.user_id }}</span>
+        </div>
+    </header>
 
-    <div class="card">
-        <div class="card-body">
-
-            <!-- Tabs -->
-            <ul class="nav nav-tabs mb-4">
-                <li class="nav-item">
-                    <a class="nav-link active">Personal Details</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link">Login Details</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link">Emergency Contact</a>
-                </li>
-            </ul>
-
-            <form method="POST" enctype="multipart/form-data">
-                <div class="row">
-
-                    <!-- Profile Photo -->
-                    <div class="col-md-3 text-center">
-                        <img src="https://via.placeholder.com/150" class="img-thumbnail mb-2">
-                        <input type="file" class="form-control mt-2" name="profile_photo">
-                    </div>
-
-                    <!-- Form Fields -->
-                    <div class="col-md-9">
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label>Name *</label>
-                                <input type="text"
-                                       name="name"
-                                       class="form-control"
-                                       value="{{ profile.name if profile }}">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label>City</label>
-                                <input type="text"
-                                       name="city"
-                                       class="form-control"
-                                       value="{{ profile.city if profile }}">
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label>Date of Birth</label>
-                                <input type="date"
-                                       name="dob"
-                                       class="form-control"
-                                       value="{{ profile.dob.strftime('%Y-%m-%d') if profile and profile.dob }}">
-                            </div>
-
-                            <div class="col-md-12">
-                                <label>Date of Joining</label>
-                                <input type="date"
-                                       name="joining_date"
-                                       class="form-control"
-                                       value="{{ profile.joining_date.strftime('%Y-%m-%d') if profile and profile.joining_date }}"
-                                       >
-                                    
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label>Telephone</label>
-                                <input type="text"
-                                       name="telephone"
-                                       class="form-control"
-                                       value="{{ profile.telephone if profile }}">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label>Mobile</label>
-                                <input type="text"
-                                       name="mobile"
-                                       class="form-control"
-                                       value="{{ profile.mobile if profile }}">
-                            </div>
-                        </div>
-
+    <form id="profileForm" action="{{ url_for('accounts.my_profile') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+        
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/30">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">📸 Profile Identity</h3>
+            </div>
+            <div class="p-8 flex flex-col md:flex-row gap-8 items-center">
+                <div class="relative">
+                    <div class="w-32 h-32 rounded-3xl bg-slate-100 overflow-hidden border-4 border-white shadow-lg flex items-center justify-center">
+                        {% if profile.profile_photo %}
+                            <img id="profilePreview" src="{{ url_for('static', filename='uploads/profile/' + profile.profile_photo) }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <div id="profilePlaceholder" class="text-slate-300 text-4xl font-bold">?</div>
+                            <img id="profilePreview" src="" class="w-full h-full object-cover hidden">
+                        {% endif %}
                     </div>
                 </div>
-
-                <!-- Buttons -->
-                <div class="d-flex justify-content-between mt-4">
-                    <button type="button" class="btn btn-secondary">Previous</button>
-                    <button type="submit" class="btn btn-success">Save</button>
+                <div id="photoUploadSection" class="space-y-2 flex-1 hidden">
+                    <label class="block text-xs font-bold text-blue-600 uppercase tracking-widest">Update Profile Photo</label>
+                    <input type="file" name="profile_photo" accept="image/*" onchange="previewImage(this)" 
+                           class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 file:font-bold cursor-pointer">
                 </div>
+            </div>
+        </div>
 
-            </form>
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/30">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">👤 Personal Details</h3>
+            </div>
+            <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
+                    <input type="text" name="name" value="{{ profile.name or '' }}" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium outline-none bg-slate-50" readonly>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
+                    <input type="email" name="email" value="{{ profile.email or '' }}" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium outline-none bg-slate-50" readonly>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Mobile Number</label>
+                    <input type="text" name="mobile" value="{{ profile.mobile or '' }}" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium outline-none bg-slate-50" readonly>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Gender</label>
+                    <select name="gender" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium bg-slate-50 outline-none" disabled>
+                        <option value="Male" {{ 'selected' if profile.gender == 'Male' }}>Male</option>
+                        <option value="Female" {{ 'selected' if profile.gender == 'Female' }}>Female</option>
+                        <option value="Other" {{ 'selected' if profile.gender == 'Other' }}>Other</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Date of Birth</label>
+                    <input type="date" name="dob" value="{{ profile.dob or '' }}" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium bg-slate-50" readonly>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">State (API)</label>
+                    <select id="stateSelect" name="state" onchange="loadCities()" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium bg-slate-50 outline-none" disabled></select>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">City (API)</label>
+                    <select id="citySelect" name="city" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium bg-slate-50 outline-none" disabled></select>
+                </div>
+                <div class="md:col-span-2 space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Full Address</label>
+                    <textarea name="address" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium h-12 bg-slate-50" readonly>{{ profile.address or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/30">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">🏦 Banking Details</h3>
+            </div>
+            <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">IFSC Code</label>
+                    <input type="text" id="ifscInput" name="ifsc_code" value="{{ profile.ifsc_code or '' }}" onchange="fetchBankDetails()" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold uppercase outline-none bg-slate-50" readonly>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Bank Name</label>
+                    <input type="text" id="bankName" name="bank_name" value="{{ profile.bank_name or '' }}" readonly class="w-full px-5 py-3 rounded-2xl bg-slate-100 text-slate-500 font-medium border-none">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Branch Name</label>
+                    <input type="text" id="branchName" name="branch_name" value="{{ profile.branch_name or '' }}" readonly class="w-full px-5 py-3 rounded-2xl bg-slate-100 text-slate-500 font-medium border-none">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Account Number</label>
+                    <input type="text" name="account_number" value="{{ profile.account_number or '' }}" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium bg-slate-50" readonly>
+                </div>
+                <div class="space-y-2 md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Account Holder Name</label>
+                    <input type="text" name="account_holder" value="{{ profile.account_holder or '' }}" class="profile-input w-full px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-medium bg-slate-50" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+            <div class="p-6 border-b border-slate-50 bg-slate-50/30">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">📄 Supported Documents</h3>
+            </div>
+            <div class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% set doc_fields = [
+                    ('PAN Card Copy', 'pan_photo'),
+                    ('Aadhar Card Copy', 'aadhar_photo'),
+                    ('Bank Statement', 'bank_statement'),
+                    ('Passbook Front Page', 'passbook_photo'),
+                    ('Cancelled Cheque', 'cancelled_cheque')
+                ] %}
+
+                {% for label, field_name in doc_fields %}
+                <div class="space-y-3 p-5 rounded-3xl border-2 border-dashed border-slate-100 hover:border-blue-200 transition-colors">
+                    <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{{ label }}</label>
+                    <div class="doc-upload hidden">
+                         <input type="file" name="{{ field_name }}" class="text-[10px] text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-slate-100 file:text-slate-700 file:font-bold">
+                    </div>
+                    <div class="doc-status text-[10px] font-bold">
+                        {# Updated line: use profile[field_name] instead of getattr #}
+                        {% if profile[field_name] %}
+                            <span class="text-emerald-500">✅ Already Uploaded</span>
+                        {% else %}
+                            <span class="text-amber-500">⚠️ Missing</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="button" id="editBtn" onclick="toggleEditMode()" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-xl hover:bg-blue-700 transition-all">
+                Edit Profile Details
+            </button>
+            <button type="button" id="saveBtn" onclick="openModal()" class="hidden w-full py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-xl hover:bg-black transition-all">
+                Save Changes
+            </button>
+            <button type="button" id="cancelBtn" onclick="location.reload()" class="hidden px-8 py-4 bg-slate-100 text-slate-500 font-bold rounded-2xl transition-all">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<div id="confirmModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl transform scale-95 transition-transform duration-200" id="modalContainer">
+        <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 mb-2">Save Profile?</h3>
+        <p class="text-slate-500 mb-8 leading-relaxed">Ensure all details are correct. Profile data will be sent for HR verification.</p>
+        <div class="flex gap-3">
+            <button onclick="submitForm()" class="flex-1 bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black">Update</button>
+            <button onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-xl font-bold hover:bg-slate-200">Cancel</button>
         </div>
     </div>
 </div>
 
-</body>
-</html>
+<script>
+    function toggleEditMode() {
+        const inputs = document.querySelectorAll('.profile-input');
+        const docUploads = document.querySelectorAll('.doc-upload');
+        const docStatus = document.querySelectorAll('.doc-status');
+        
+        inputs.forEach(input => {
+            input.removeAttribute('readonly');
+            input.removeAttribute('disabled');
+            input.classList.remove('bg-slate-50');
+            input.classList.add('bg-white', 'border-blue-500', 'ring-4', 'ring-blue-50');
+        });
+
+        docUploads.forEach(el => el.classList.remove('hidden'));
+        docStatus.forEach(el => el.classList.add('hidden'));
+        document.getElementById('photoUploadSection').classList.remove('hidden');
+
+        document.getElementById('editBtn').classList.add('hidden');
+        document.getElementById('saveBtn').classList.remove('hidden');
+        document.getElementById('cancelBtn').classList.remove('hidden');
+    }
+
+    function openModal() {
+        document.getElementById('confirmModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('modalContainer').classList.remove('scale-95'), 10);
+    }
+
+    function closeModal() {
+        document.getElementById('confirmModal').classList.add('hidden');
+        document.getElementById('modalContainer').classList.add('scale-95');
+    }
+
+    function submitForm() {
+        document.getElementById('profileForm').submit();
+    }
+
+    function previewImage(input) {
+        const preview = document.getElementById('profilePreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+                if (document.getElementById('profilePlaceholder')) document.getElementById('profilePlaceholder').classList.add('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function fetchBankDetails() {
+        const ifsc = document.getElementById('ifscInput').value.trim().toUpperCase();
+        if (ifsc.length === 11) {
+            fetch(`https://ifsc.razorpay.com/${ifsc}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('bankName').value = data.BANK;
+                document.getElementById('branchName').value = data.BRANCH;
+            }).catch(() => alert("Invalid IFSC Code"));
+        }
+    }
+
+    const config = { cUrl: 'https://api.countrystatecity.in/v1/countries/IN/states', ckey: 'e8d4b9d3b5cbcbc9b2dea8f1e46580035169ac4917f55ccb505e96c41026f80e' };
+    
+    function loadStates() {
+        fetch(config.cUrl, {headers: {"X-CSCAPI-KEY": config.ckey}})
+        .then(res => res.json()).then(data => {
+            const s = document.getElementById('stateSelect');
+            s.innerHTML = '<option value="" disabled selected>Select State</option>';
+            data.forEach(st => {
+                const opt = document.createElement('option');
+                opt.value = st.iso2; opt.textContent = st.name;
+                if (st.name === "{{ profile.state }}") opt.selected = true;
+                s.appendChild(opt);
+            });
+            if(s.value) loadCities();
+        });
+    }
+
+    function loadCities() {
+        const sc = document.getElementById('stateSelect').value;
+        if (!sc) return;
+        fetch(`https://api.countrystatecity.in/v1/countries/IN/states/${sc}/cities`, {headers: {"X-CSCAPI-KEY": config.ckey}})
+        .then(res => res.json()).then(data => {
+            const c = document.getElementById('citySelect');
+            c.innerHTML = '<option value="" disabled selected>Select City</option>';
+            data.forEach(ci => {
+                const opt = document.createElement('option');
+                opt.value = ci.name; opt.textContent = ci.name;
+                if (ci.name === "{{ profile.city }}") opt.selected = true;
+                c.appendChild(opt);
+            });
+        });
+    }
+
+    window.onload = loadStates;
+</script>
+{% endblock %}

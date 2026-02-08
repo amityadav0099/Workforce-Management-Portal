@@ -1,2 +1,2 @@
 from .routes import accounts_bp
-from .models import EmployeeProfile
+from .models import User,EmployeeProfile

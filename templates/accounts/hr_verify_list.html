@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}HR Verification Dashboard | Company Portal{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto pb-20">
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Document Verification</h1>
+            <p class="text-slate-500 font-medium">Review employee submissions and verify identity documents.</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl border border-amber-100 text-sm font-bold">
+                Pending: {{ profiles|length }}
+            </div>
+        </div>
+    </header>
+
+    <div class="mb-6 flex flex-col md:flex-row gap-4">
+        <div class="relative flex-1">
+            <span class="absolute inset-y-0 left-5 flex items-center text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </span>
+            <input type="text" id="hrSearchInput" onkeyup="filterTable()" placeholder="Search by name, email or bank..." 
+                   class="w-full pl-14 pr-6 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-medium text-slate-700">
+        </div>
+        <select id="statusFilter" onchange="filterTable()" class="bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm outline-none font-bold text-slate-500 text-sm cursor-pointer">
+            <option value="">All Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Verified">Verified</option>
+            <option value="Rejected">Rejected</option>
+        </select>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="verificationTable">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-100">
+                        <th class="p-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Employee Information</th>
+                        <th class="p-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Verification Documents</th>
+                        <th class="p-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Banking Info</th>
+                        <th class="p-6 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for p in profiles %}
+                    <tr class="hover:bg-slate-50/30 transition-all table-row-item">
+                        <td class="p-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center shrink-0">
+                                    {% if p.profile_photo %}
+                                        <img src="{{ url_for('static', filename='uploads/profile/' + p.profile_photo) }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <span class="text-slate-400 font-bold uppercase">{{ p.name[0] if p.name else '?' }}</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('accounts.view_employee_admin', profile_id=p.id) }}" 
+                                       class="font-bold text-slate-800 leading-tight hover:text-blue-600 hover:underline transition-all search-target">
+                                        {{ p.name or 'Pending Name' }}
+                                    </a>
+                                    <div class="text-[11px] text-slate-400 mt-0.5 search-target">{{ p.user.email }}</div>
+                                    
+                                    <span class="status-badge inline-block mt-2 px-2 py-0.5 text-[9px] font-bold uppercase rounded-md border border-current opacity-80 
+                                        {% if p.verification_status == 'Pending' %} bg-amber-50 text-amber-600 
+                                        {% elif p.verification_status == 'Verified' %} bg-emerald-50 text-emerald-600 
+                                        {% else %} bg-rose-50 text-rose-600 {% endif %}">
+                                        {{ p.verification_status }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="p-6">
+                            <div class="flex flex-wrap gap-2 max-w-[300px]">
+                                {% if p.pan_photo %}
+                                    <button onclick="openPreview('{{ url_for('static', filename='uploads/profile/' + p.pan_photo) }}', 'PAN Card Preview')"
+                                            class="px-2 py-1 bg-blue-50 text-blue-600 text-[9px] font-bold rounded-md border border-blue-100 hover:bg-blue-100 transition-colors">PAN CARD</button>
+                                {% endif %}
+                                {% if p.aadhar_photo %}
+                                    <button onclick="openPreview('{{ url_for('static', filename='uploads/profile/' + p.aadhar_photo) }}', 'Aadhar Card Preview')"
+                                            class="px-2 py-1 bg-indigo-50 text-indigo-600 text-[9px] font-bold rounded-md border border-indigo-100 hover:bg-indigo-100 transition-colors">AADHAR</button>
+                                {% endif %}
+                                {% if p.bank_statement %}
+                                    <button onclick="openPreview('{{ url_for('static', filename='uploads/profile/' + p.bank_statement) }}', 'Bank Statement Preview')"
+                                            class="px-2 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-md border border-emerald-100 hover:bg-emerald-100 transition-colors">STATEMENT</button>
+                                {% endif %}
+                                {% if p.passbook_photo %}
+                                    <button onclick="openPreview('{{ url_for('static', filename='uploads/profile/' + p.passbook_photo) }}', 'Passbook Preview')"
+                                            class="px-2 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-md border border-emerald-100 hover:bg-emerald-100 transition-colors">PASSBOOK</button>
+                                {% endif %}
+                                {% if p.cancelled_cheque %}
+                                    <button onclick="openPreview('{{ url_for('static', filename='uploads/profile/' + p.cancelled_cheque) }}', 'Cancelled Cheque Preview')"
+                                            class="px-2 py-1 bg-rose-50 text-rose-600 text-[9px] font-bold rounded-md border border-rose-100 hover:bg-rose-100 transition-colors">CHEQUE</button>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td class="p-6">
+                            <div class="text-[11px] font-bold text-slate-700 truncate max-w-[150px] search-target">{{ p.bank_name or 'N/A' }}</div>
+                            <div class="text-[10px] text-slate-400 font-mono search-target">{{ p.account_number or '---' }}</div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{{ p.ifsc_code or '---' }}</div>
+                        </td>
+
+                        <td class="p-6 text-right space-x-2">
+                            <a href="{{ url_for('accounts.view_employee_admin', profile_id=p.id) }}" 
+                               class="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
+                                Review Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="previewModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-[2.5rem] max-w-4xl w-full overflow-hidden shadow-2xl">
+        <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+            <h3 id="modalTitle" class="font-bold text-slate-800">Document Preview</h3>
+            <button onclick="closePreview()" class="text-slate-400 hover:text-rose-500 transition-colors text-2xl font-bold">&times;</button>
+        </div>
+        <div class="p-8 bg-white flex justify-center overflow-auto max-h-[75vh]">
+            <img id="previewImage" src="" class="rounded-2xl shadow-2xl border border-slate-100 max-w-full h-auto">
+        </div>
+    </div>
+</div>
+
+<script>
+// --- Real-time Search Logic ---
+function filterTable() {
+    const searchVal = document.getElementById("hrSearchInput").value.toLowerCase();
+    const statusVal = document.getElementById("statusFilter").value.toLowerCase();
+    const rows = document.querySelectorAll(".table-row-item");
+
+    rows.forEach(row => {
+        const textContent = row.innerText.toLowerCase();
+        const statusText = row.querySelector(".status-badge").innerText.toLowerCase();
+        
+        const matchesSearch = textContent.includes(searchVal);
+        const matchesStatus = statusVal === "" || statusText.includes(statusVal);
+
+        if (matchesSearch && matchesStatus) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+// --- Modal Logic ---
+function openPreview(src, title) {
+    document.getElementById('previewImage').src = src;
+    document.getElementById('modalTitle').innerText = title;
+    document.getElementById('previewModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+    document.body.style.overflow = 'auto'; // Restore scroll
+}
+
+// Close modal on background click
+window.onclick = function(event) {
+    const modal = document.getElementById('previewModal');
+    if (event.target == modal) {
+        closePreview();
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; color: #333; padding: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .details { margin: 20px 0; width: 100%; border-collapse: collapse; }
+        .details td { padding: 10px; border: 1px solid #eee; }
+        .total { background: #f9f9f9; font-weight: bold; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ slip.user.email }}</h1>
+        <p>Monthly Payslip: {{ slip.month }}</p>
+    </div>
+    <table class="details">
+        <tr><td>Basic Salary</td><td>₹{{ "{:,.2f}".format(slip.basic_salary) }}</td></tr>
+        <tr><td>Allowances</td><td>₹{{ "{:,.2f}".format(slip.allowances) }}</td></tr>
+        <tr><td>Deductions (Tax & PF)</td><td style="color: red;">-₹{{ "{:,.2f}".format(slip.deductions) }}</td></tr>
+        <tr class="total"><td>Net Payable</td><td>₹{{ "{:,.2f}".format(slip.net_salary) }}</td></tr>
+    </table>
+    <p style="font-size: 10px; text-align: center; margin-top: 50px;">This is a computer-generated document and does not require a signature.</p>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto pb-20">
+    <form method="POST" class="space-y-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold">Admin Review: {{ profile.name }}</h1>
+            <span class="px-4 py-1 rounded-full text-xs font-bold uppercase 
+                {% if profile.verification_status == 'Verified' %} bg-emerald-100 text-emerald-700 
+                {% else %} bg-amber-100 text-amber-700 {% endif %}">
+                {{ profile.verification_status }}
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 space-y-4">
+                <h3 class="font-bold text-blue-800">Payroll Info</h3>
+                <div>
+                    <label class="text-xs font-bold text-blue-600 uppercase">Annual CTC</label>
+                    <input type="number" name="ctc" value="{{ profile.ctc or '' }}" class="w-full p-3 rounded-xl border-none shadow-sm mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-blue-600 uppercase">Monthly In-Hand</label>
+                    <input type="number" name="in_hand" value="{{ profile.in_hand or '' }}" class="w-full p-3 rounded-xl border-none shadow-sm mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-blue-600 uppercase">Joining Date</label>
+                    <input type="date" name="joining_date" value="{{ profile.joining_date or '' }}" class="w-full p-3 rounded-xl border-none shadow-sm mt-1">
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
+                <h3 class="font-bold text-slate-800">Decision</h3>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">HR Remarks</label>
+                    <textarea name="hr_remarks" class="w-full p-3 rounded-xl border-none shadow-sm mt-1" rows="3">{{ profile.hr_remarks }}</textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Verification Status</label>
+                    <select name="status" class="w-full p-3 rounded-xl border-none shadow-sm mt-1 font-bold">
+                        <option value="Pending" {% if profile.verification_status == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Verified" {% if profile.verification_status == 'Verified' %}selected{% endif %}>Verified</option>
+                        <option value="Rejected" {% if profile.verification_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" class="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl">Save Changes</button>
+            <a href="{{ url_for('accounts.hr_verify_list') }}" class="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-500">Back</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

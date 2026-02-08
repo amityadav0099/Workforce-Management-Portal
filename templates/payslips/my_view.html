@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto mt-10 p-8 bg-white rounded-[2.5rem] shadow-xl border border-slate-100">
+    <div class="flex justify-between items-center mb-10">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">My Salary Slips</h2>
+            <p class="text-slate-500 font-medium text-sm">View and download your monthly earnings</p>
+        </div>
+        <div class="bg-blue-50 px-4 py-2 rounded-2xl border border-blue-100">
+            <span class="text-blue-600 font-bold text-xs uppercase tracking-widest">Employee Portal</span>
+        </div>
+    </div>
+
+    <div class="overflow-hidden rounded-3xl border border-slate-50">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest">
+                    <th class="px-6 py-4 font-bold">Month</th>
+                    <th class="px-6 py-4 font-bold">Basic (₹)</th>
+                    <th class="px-6 py-4 font-bold">Deductions (₹)</th>
+                    <th class="px-6 py-4 font-bold">Net Salary (₹)</th>
+                    <th class="px-6 py-4 text-right font-bold">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for slip in slips %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-4">
+                        <span class="text-sm font-bold text-slate-700">{{ slip.month }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-600">₹{{ "{:,.2f}".format(slip.basic_salary) }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-rose-500 font-medium">-₹{{ "{:,.2f}".format(slip.deductions) }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm font-black text-emerald-600">₹{{ "{:,.2f}".format(slip.net_salary) }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{{ url_for('payslips.download_payslip', slip_id=slip.id) }}" 
+                           class="inline-flex items-center gap-2 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-blue-600 transition-all">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download PDF
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-20 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <p class="text-slate-400 font-bold">No payslips available yet.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Manage Payroll | HR Portal{% endblock %}
+
+{% block content %}
+<header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+    <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Payroll Management</h1>
+        <p class="text-slate-500 font-medium tracking-tight">Review and process employee monthly disbursements.</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-blue-200 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Process All Salaries
+        </button>
+    </div>
+</header>
+
+<div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+    <div class="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+        <h2 class="font-bold text-slate-800">Monthly Cycle: <span class="text-blue-600">February 2026</span></h2>
+        <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg uppercase tracking-widest">System Ready</span>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-50">
+                    <th class="px-8 py-4 font-bold">Employee</th>
+                    <th class="px-8 py-4 font-bold">Base Salary</th>
+                    <th class="px-8 py-4 font-bold">Allowances</th>
+                    <th class="px-8 py-4 font-bold">Deductions</th>
+                    <th class="px-8 py-4 font-bold">Net Payable</th>
+                    <th class="px-8 py-4 text-right font-bold">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for record in payroll_records %}
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-8 py-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                {{ record.user.email[0].upper() if record.user.email else 'U' }}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-semibold text-slate-700">{{ record.user.email }}</span>
+                                <span class="text-[10px] text-slate-400 font-bold">ID: #00{{ record.user_id }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-5 text-sm font-medium text-slate-600">₹{{ "{:,.2f}".format(record.base_salary) }}</td>
+                    <td class="px-8 py-5 text-sm font-medium text-emerald-600">+ ₹{{ "{:,.2f}".format(record.allowances) }}</td>
+                    <td class="px-8 py-5 text-sm font-medium text-rose-500">- ₹{{ "{:,.2f}".format(record.deductions) }}</td>
+                    <td class="px-8 py-5 text-sm font-bold text-slate-900">
+                        ₹{{ "{:,.2f}".format(record.base_salary + record.allowances - record.deductions) }}
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        <div class="flex items-center justify-end gap-3">
+                            <button class="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-lg transition-all">Process</button>
+                            <button class="text-xs font-bold text-slate-400 hover:text-slate-600">Details</button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-8 py-20 text-center">
+                        <div class="flex flex-col items-center justify-center gap-3">
+                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            </div>
+                            <p class="text-slate-400 italic text-sm">No payroll records found for the current cycle.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

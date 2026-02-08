@@ -1,107 +1,93 @@
 {% extends "base.html" %}
-{% block title %}Grievances{% endblock %}
-<div style="margin-bottom: 15px;">
-    <a href="{{ url_for('grievances_page') }}">All</a> |
-    <a href="{{ url_for('grievances_page', status='Open') }}">Open</a> |
-    <a href="{{ url_for('grievances_page', status='Resolved') }}">Resolved</a>
-</div>
+{% block title %}Grievances | T3X Connect{% endblock %}
+
+{% block page_title %}Grievance Management{% endblock %}
 
 {% block content %}
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-6">
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('grievances.list_grievances') }}" class="px-4 py-2 rounded-xl text-sm font-bold transition-all {% if not request.args.get('status') %}bg-slate-900 text-white{% else %}bg-slate-50 text-slate-500 hover:bg-slate-100{% endif %}">
+                📂 All
+            </a>
+            <a href="{{ url_for('grievances.list_grievances', status='Open') }}" class="px-4 py-2 rounded-xl text-sm font-bold transition-all {% if request.args.get('status') == 'Open' %}bg-amber-500 text-white{% else %}bg-slate-50 text-slate-500 hover:bg-slate-100{% endif %}">
+                🟡 Pending
+            </a>
+            <a href="{{ url_for('grievances.list_grievances', status='Resolved') }}" class="px-4 py-2 rounded-xl text-sm font-bold transition-all {% if request.args.get('status') == 'Resolved' %}bg-emerald-500 text-white{% else %}bg-slate-50 text-slate-500 hover:bg-slate-100{% endif %}">
+                🟢 Resolved
+            </a>
+        </div>
 
-<h2>Grievances</h2>
-<div style="margin: 15px 0;">
-    <a href="{{ url_for('grievances_page') }}" class="btn">
-        📂 All
-    </a>
-
-    <a href="{{ url_for('grievances_page', status='Open') }}" class="btn">
-        🟡 Pending
-    </a>
-
-    <a href="{{ url_for('grievances_page', status='Resolved') }}" class="btn">
-        🟢 Resolved
-    </a>
-</div>
-
-
-{% if role == "hr" %}
-<div class="filter-box">
-    <h4>🔍 Filter Grievances</h4>
-
-    <div class="filter-actions">
-        <a href="{{ url_for('grievances_page') }}" class="filter-btn all">
-            📂 All
-        </a>
-
-        <a href="{{ url_for('grievances_page', status='Open') }}" class="filter-btn pending">
-            🟡 Pending
-        </a>
-
-        <a href="{{ url_for('grievances_page', status='Resolved') }}" class="filter-btn resolved">
-            🟢 Resolved
-        </a>
-    </div>
-    <div class="search-box">
-    <input 
-        type="text" 
-        id="searchInput"
-        placeholder="🔍 Search grievance..."
-        onkeyup="searchGrievance()"
-    >
-</div>
-
-</div>
-
-{% endif %}
-<div class="table-box">
-    </div>
-<table class="grievance-table">
-
-   <tr>
-    <th>#</th>
-    <th>Title</th>
-    <th>Description</th>
-    <th>Status</th>
-
-    {% if role == "hr" %}
-    <th>Action</th>
-    {% endif %}
-</tr>
-
-
-    {% for g in grievances %}
-<tr>
-    <td>{{ loop.index }}</td>
-    <td>{{ g.title }}</td>
-
-        <td>{{ g.description }}</td>
- <td>
-    {% if g.status == "Open" %}
-        <span class="status-badge status-open">Open</span>
-    {% else %}
-        <span class="status-badge status-resolved">Resolved</span>
-    {% endif %}
-</td>
-
-</td>
-
-        
-
-        {% if role == "hr" %}
-        <td>
-            {% if g.status == "Open" %}
-            <a href="{{ url_for('resolve_grievance', id=g.id) }}" class="action-btn">
-         Resolve
-        </a>
-
-            {% else %}
-            ✔
-            {% endif %}
-        </td>
+        {% if session['role'] == "hr" %}
+        <div class="relative w-full md:w-72">
+            <input 
+                type="text" 
+                id="searchInput"
+                placeholder="Search grievances..."
+                onkeyup="searchGrievance()"
+                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+            >
+            <div class="absolute left-3 top-2.5 text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+        </div>
         {% endif %}
-    </tr>
-    {% endfor %}
-</table>
+    </div>
+
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-left border-collapse" id="grievanceTable">
+            <thead>
+                <tr class="bg-slate-50/50">
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">#</th>
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Description</th>
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                    {% if session['role'] == "hr" %}
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for g in grievances %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-8 py-5 text-sm font-bold text-slate-400">{{ loop.index }}</td>
+                    <td class="px-8 py-5 text-sm font-bold text-slate-900">{{ g.title }}</td>
+                    <td class="px-8 py-5 text-sm text-slate-500 max-w-xs truncate">{{ g.description }}</td>
+                    <td class="px-8 py-5">
+                        {% if g.status == "Open" %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">
+                                Open
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                Resolved
+                            </span>
+                        {% endif %}
+                    </td>
+                    {% if session['role'] == "hr" %}
+                    <td class="px-8 py-5 text-right">
+                        {% if g.status == "Open" %}
+                        <a href="{{ url_for('grievances.resolve', id=g.id) }}" class="text-xs font-black text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-lg transition-all">
+                            Resolve
+                        </a>
+                        {% else %}
+                        <span class="text-emerald-500 font-bold text-sm">✓</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-8 py-20 text-center">
+                        <p class="text-slate-400 font-medium italic">No grievances found matching your request.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <script>
 function searchGrievance() {
     let input = document.getElementById("searchInput").value.toLowerCase();
@@ -109,18 +95,11 @@ function searchGrievance() {
 
     rows.forEach(row => {
         let text = row.innerText.toLowerCase();
-        row.style.display = text.includes(input) ? "" : "none";
+        // Skip the "No grievances found" row if it exists
+        if(row.cells.length > 1) {
+            row.style.display = text.includes(input) ? "" : "none";
+        }
     });
 }
 </script>
-
-
 {% endblock %}
-
-
-
-
-
-
-
-

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | HR Management Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+</head>
+<body class="bg-slate-50">
+
+<div class="min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-md w-full bg-white rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-slate-100 overflow-hidden">
+        <div class="h-3 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+
+        <div class="p-10">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 mb-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                </div>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
+                <p class="text-slate-500 mt-2 font-medium">Please sign in to your account</p>
+            </div>
+
+            <form method="POST" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Work Email</label>
+                    <input type="email" name="email" required placeholder="amit@company.com"
+                        class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none">
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2 ml-1">
+                        <label class="text-sm font-bold text-slate-700">Password</label>
+                        <a href="{{ url_for('forgot_password') }}" class="text-xs font-bold text-blue-600 hover:text-blue-700">Forgot Password?</a>
+                    </div>
+                    <input type="password" name="password" required placeholder="••••••••"
+                        class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Sign in as</label>
+                    <div class="relative">
+                        <select name="role" required 
+                            class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all appearance-none cursor-pointer font-medium outline-none">
+                            <option value="employee">Employee</option>
+                            <option value="hr">HR Administrator</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" 
+                    class="w-full mt-4 py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-200 transition-all transform active:scale-[0.98]">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-10 text-center border-t border-slate-100 pt-8">
+                <p class="text-slate-500 font-medium">Don't have an account? 
+                    <a href="{{ url_for('accounts.register') }}" class="text-blue-600 font-bold hover:text-blue-700 transition-colors ml-1">Register Now</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -4,6 +4,77 @@ body {
     background: #f4f6f9;
 }
 
+
+.tab-btn {
+  opacity: 0.6;
+  padding-bottom: 4px;
+}
+.tab-btn.active {
+  opacity: 1;
+  color: #22d3ee;
+  border-bottom: 2px solid #22d3ee;
+}
+
+/* ---- Fix phone input light background ---- */
+input,
+select,
+textarea {
+  background-color: transparent !important;
+  color: #e5e7eb;
+}
+
+/* Remove focus glow */
+input:focus,
+select:focus,
+textarea:focus {
+  background-color: transparent !important;
+  outline: none;
+  box-shadow: none;
+}
+
+/* Chrome autofill fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e5e7eb;
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+
+.menu-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    padding: 20px 20px 10px;
+    letter-spacing: 1px;
+}
+
+.sidebar a {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    color: #444;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.sidebar i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar a:hover { background: #f0f4f8; }
+.sidebar a.active {
+    background: #e3f2fd;
+    color: #1976d2;
+    border-left: 4px solid #1976d2;
+}
+
+.divider { height: 1px; background: #eee; margin: 10px 20px; }
+
+
 /* TOP BAR */
 .topbar {
     background: #1e88e5;
