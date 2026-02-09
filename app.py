@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 # --- CONFIGURATION (THE POSTGRES FIX) ---
 # Pull the URL from Render's environment variable
-uri = os.getenv("DATABASE_URL") 
+uri = os.getenv("DB_URL") 
 
 # MANDATORY FIX: SQLAlchemy requires 'postgresql://', but Render gives 'postgres://'
 if uri and uri.startswith("postgres://"):
