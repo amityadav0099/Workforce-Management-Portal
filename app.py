@@ -25,8 +25,15 @@ from reports.routes import reports_bp
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DB_URL")
+# --- CONFIGURATION (THE POSTGRES FIX) ---
+# Pull the URL from Render's environment variable
+uri = os.getenv("DATABASE_URL") 
+
+# MANDATORY FIX: SQLAlchemy requires 'postgresql://', but Render gives 'postgres://'
+if uri and uri.startswith("postgres://"):
+    uri = uri.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') 
 
@@ -35,16 +42,21 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USER') 
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_USER')     
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASS') # Use MAIL_PASS here
 mail = Mail(app)
 
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 db.init_app(app)
 
+# --- AUTOMATIC TABLE CREATION FIX ---
+# This is now outside the "if __name__" block so it runs on Render
+with app.app_context():
+    db.create_all()
+
 # --- REGISTER BLUEPRINTS ---
 app.register_blueprint(leaves_bp)
 app.register_blueprint(payslips_bp)
-app.register_blueprint(accounts_bp) # All account routes now prefixed with /accounts
+app.register_blueprint(accounts_bp) 
 app.register_blueprint(grievances_bp)
 app.register_blueprint(reports_bp)
 app.register_blueprint(payroll_bp)
@@ -54,24 +66,20 @@ app.register_blueprint(attendance_bp)
 
 @app.route("/")
 def index():
-    """Main entry point: redirects to login or blueprint dashboard."""
     if 'user_id' in session:
         return redirect(url_for('accounts.dashboard'))
     return redirect(url_for('accounts.login'))
 
 @app.route("/login")
 def login_redirect():
-    """Redirects legacy /login to the new Blueprint login."""
     return redirect(url_for('accounts.login'))
 
 @app.route("/register")
 def register_redirect():
-    """Redirects legacy /register to the new Blueprint register."""
     return redirect(url_for('accounts.register'))
 
 @app.route("/dashboard")
 def dashboard_redirect():
-    """Redirects legacy /dashboard to the full Blueprint version."""
     return redirect(url_for('accounts.dashboard'))
 
 # ================= PASSWORD RECOVERY =================
@@ -116,6 +124,5 @@ def reset_password(token):
 # ================= APP STARTUP =================
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
+    # Local development only
     app.run(debug=True)
