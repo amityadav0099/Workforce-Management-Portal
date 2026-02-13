@@ -51,13 +51,14 @@ def login():
             session["role"] = user.role
             flash("Welcome back!", "success")
             return redirect(url_for("accounts.dashboard"))
-        flash("Invalid email or password", "rose")
+        else:
+            flash("Invalid email or password. Please try again.", "rose")
+            return redirect(url_for("accounts.login"))
     return render_template("accounts/login.html")
 
 @accounts_bp.route("/logout")
 def logout():
     session.clear() 
-    flash("You have been logged out.", "success")
     return redirect(url_for("accounts.login"))
 
 # --- USER ROUTES ---

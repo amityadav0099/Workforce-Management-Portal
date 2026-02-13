@@ -12,12 +12,14 @@ def view_payslips():
     u_id = session.get("user_id")
 
     if role == "hr":
-        payslips = Payslip.query.order_by(Payslip.id.desc()).all()
+        # HR sees all records
+        data = Payslip.query.order_by(Payslip.id.desc()).all()
     else:
-        # Now works since user_id exists in MySQL
-        payslips = Payslip.query.filter_by(user_id=u_id).order_by(Payslip.id.desc()).all()
+        # Filter by the logged-in user's ID
+        data = Payslip.query.filter_by(user_id=u_id).order_by(Payslip.id.desc()).all()
 
-    return render_template("payslips/my_view.html", slips=payslips)
+    # Pass it as 'slips' to match your HTML template
+    return render_template("payslips/my_view.html", slips=data)
 
 @payslips_bp.route("/download/<int:slip_id>")
 @login_required

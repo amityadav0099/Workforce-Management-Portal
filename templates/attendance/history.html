@@ -46,8 +46,9 @@
                             {% endif %}
                         </td>
                         <td class="px-8 py-6">
-                            <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold">
-                                {{ log.total_hours|round(2) }} Hrs
+                            {# Using the pre-calculated duration from routes.py #}
+                            <span class="px-3 py-1 {% if log.clock_out %}bg-slate-100 text-slate-600{% else %}bg-blue-50 text-blue-500 animate-pulse{% endif %} rounded-lg text-xs font-bold whitespace-nowrap">
+                                {{ log.display_duration }}
                             </span>
                         </td>
                         <td class="px-8 py-6">

@@ -31,7 +31,7 @@ def add_grievance(): # Renamed to avoid AssertionError
         db.session.add(g)
         db.session.commit()
         flash("Grievance submitted successfully", "success")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("accounts.dashboard"))
     return render_template("grievances/add_grievance.html")
 
 # ================= RESOLVE (HR) =================

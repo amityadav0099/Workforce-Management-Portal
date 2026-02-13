@@ -16,29 +16,50 @@ def leave_list():
     return redirect(url_for("leaves.apply_leave"))
 
 # ================= EMPLOYEE APPLY LEAVE =================
+# ================= EMPLOYEE APPLY LEAVE =================
 @leaves_bp.route("/apply-leave", methods=["GET", "POST"])
 @login_required
 @role_required("employee")
 def apply_leave():
     if request.method == "POST":
         try:
-            # Convert string dates from form to Python date objects
-            from_date = datetime.strptime(request.form["from_date"], "%Y-%m-%d").date()
-            to_date = datetime.strptime(request.form["to_date"], "%Y-%m-%d").date()
+            # 1. Extract values using the updated HTML 'name' attributes
+            raw_start = request.form.get("start_date")
+            raw_end = request.form.get("end_date")
+            leave_type = request.form.get("leave_type")
+            reason = request.form.get("reason")
 
-            # Create new record using LeaveRequest class
+            # 2. Convert strings to Python date objects
+            from_dt = datetime.strptime(raw_start, "%Y-%m-%d").date()
+            to_dt = datetime.strptime(raw_end, "%Y-%m-%d").date()
+
+            # 3. BACKEND VALIDATION (The "Binding" Logic)
+            today = datetime.now().date()
+            
+            if from_dt < today:
+                flash("Error: Start date cannot be in the past. ❌", "danger")
+                return render_template("leaves/apply_leave.html")
+            
+            if to_dt < from_dt:
+                flash("Error: End date cannot be before the start date. ❌", "danger")
+                return render_template("leaves/apply_leave.html")
+
+            # 4. Create the database record
             new_leave = LeaveRequest(
-                user_id=session["user_id"], # Linked to User ID for integrity
-                from_date=from_date,
-                to_date=to_date,
-                reason=request.form["reason"],
+                user_id=session["user_id"],
+                leave_type=leave_type,
+                start_date=from_dt, # Maps to DB column 'start_date'
+                end_date=to_dt,     # Maps to DB column 'end_date'
+                reason=reason,
                 status="Pending"
             )
 
             db.session.add(new_leave)
             db.session.commit()
+            
             flash("Leave application submitted successfully! 🚀", "success")
             return redirect(url_for("leaves.my_leaves"))
+
         except Exception as e:
             db.session.rollback()
             flash(f"Error: {str(e)}", "danger")
@@ -60,8 +81,11 @@ def my_leaves():
 @role_required("hr")
 def manage_leaves():
     # HR views all requests across the company
-    leaves = LeaveRequest.query.order_by(LeaveRequest.id.desc()).all()
-    return render_template("leaves/manage_leaves.html", leaves=leaves)
+    all_leaves = LeaveRequest.query.order_by(LeaveRequest.id.desc()).all()
+    
+    return render_template("leaves/manage_leaves.html", requests=all_leaves)
+    
+
 
 # ================= HR LEAVE ACTION =================
 @leaves_bp.route("/leave-action/<int:id>/<string:action>")
@@ -70,7 +94,7 @@ def manage_leaves():
 def leave_action(id, action):
     leave = LeaveRequest.query.get_or_404(id)
 
-    if action == "approve":
+    if action.lower() == "approve" or action.lower() == "approved":
         leave.status = "Approved"
         flash(f"Leave approved for request #{id} ✅", "success")
     else:

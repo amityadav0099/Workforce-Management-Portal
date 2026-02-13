@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block page_title %}Leave Request Status{% endblock %}
 {% block content %}
 <div class="max-w-6xl mx-auto mt-10 p-8 bg-white rounded-[2.5rem] shadow-xl border border-slate-100">
     <div class="flex justify-between items-center mb-8">
@@ -29,8 +30,8 @@
                         <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold">{{ leave.leave_type }}</span>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="text-sm font-bold text-slate-700">{{ leave.from_date.strftime('%d %b') }} - {{ leave.to_date.strftime('%d %b') }}</div>
-                        <div class="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{{ leave.from_date.year }}</div>
+                        <div class="text-sm font-bold text-slate-700">{{ leave.start_date.strftime('%d %b') }} - {{ leave.end_date.strftime('%d %b') }}</div>
+                        <div class="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{{ leave.start_date.year }}</div>
                     </td>
                     <td class="px-6 py-4">
                         <p class="text-sm text-slate-500 max-w-xs truncate">{{ leave.reason }}</p>

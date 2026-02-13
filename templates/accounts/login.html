@@ -22,6 +22,18 @@
                 <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
                 <p class="text-slate-500 mt-2 font-medium">Please sign in to your account</p>
             </div>
+            <div id="flash-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message mb-6 p-4 rounded-2xl {% if category == 'success' %}bg-emerald-50 text-emerald-600 border border-emerald-100{% else %}bg-rose-50 text-rose-600 border border-rose-100{% endif %} font-bold text-xs shadow-sm flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full {% if category == 'success' %}bg-emerald-500{% else %}bg-rose-500{% endif %}"></span>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
 
             <form method="POST" class="space-y-5">
                 <div>

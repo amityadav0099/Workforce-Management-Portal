@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block page_title %}Leave Management{% endblock %}
 {% block content %}
 <div class="max-w-6xl mx-auto mt-10 p-8 bg-white rounded-3xl shadow-xl border border-slate-100">
     <h2 class="text-2xl font-bold text-slate-800 mb-8">Pending Leave Requests</h2>
@@ -32,8 +33,10 @@
                     </td>
                     <td class="px-6 py-4 text-right space-x-2">
                         {% if leave.status == 'Pending' %}
-                        <a href="{{ url_for('leaves.leave_action', leave_id=leave.id, status='Approved') }}" class="text-xs font-bold text-emerald-600 hover:underline">Approve</a>
-                        <a href="{{ url_for('leaves.leave_action', leave_id=leave.id, status='Rejected') }}" class="text-xs font-bold text-rose-600 hover:underline">Reject</a>
+                       <a href="{{ url_for('leaves.leave_action', id=leave.id, action='approve') }}" 
+       class="text-xs font-bold text-emerald-600 hover:underline">Approve</a>
+                        <a href="{{ url_for('leaves.leave_action', id=leave.id, action='reject') }}" 
+       class="text-xs font-bold text-rose-600 hover:underline">Reject</a>
                         {% endif %}
                     </td>
                 </tr>

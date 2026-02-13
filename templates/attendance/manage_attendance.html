@@ -1,54 +1,111 @@
 {% extends "base.html" %}
 {% block title %}Manage Attendance | HR Portal{% endblock %}
-{% block page_title %}Employee Attendance Logs{% endblock %}
+{% block page_title %}Attendance Logs{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-[2rem] shadow-xl shadow-blue-900/5 border border-slate-100 overflow-hidden">
-    <div class="p-8 border-b border-slate-50 flex justify-between items-center">
-        <h3 class="text-xl font-bold text-slate-800">Daily Logs</h3>
-        <span class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-xl">Today: {{ now.strftime('%d %b, %Y') if now else '' }}</span>
+<div class="max-w-6xl mx-auto">
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <div class="relative flex-1">
+            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </span>
+            <input type="text" id="logSearch" onkeyup="filterLogs()" placeholder="Search by employee email..." 
+                   class="w-full pl-11 pr-4 py-3 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm transition-all">
+        </div>
+        <div class="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between min-w-[200px]">
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Records</span>
+            <span class="text-lg font-black text-blue-600">{{ attendance_list|length }}</span>
+        </div>
     </div>
-    
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50/50">
-                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Employee</th>
-                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
-                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Clock In</th>
-                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Clock Out</th>
-                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-                {% for log in attendance_list %}
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="px-8 py-5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs">
-                                {{ log.user.email[0] | upper }}
+
+    <div class="bg-white rounded-[2rem] shadow-xl shadow-blue-900/5 border border-slate-100 overflow-hidden">
+        <div class="p-6 md:p-8 border-b border-slate-50 flex justify-between items-center">
+            <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">Daily Activity</h3>
+            <span class="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl uppercase tracking-wider">
+                {{ now.strftime('%d %b, %Y') if now else '' }}
+            </span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="attendanceTable">
+                <thead>
+                    <tr class="bg-slate-50/50">
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Clock In</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Clock Out</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Location</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for log in attendance_list %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-8 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-[10px] shrink-0">
+                                    {{ log.user.email[0] | upper }}
+                                </div>
+                                <span class="text-sm font-bold text-slate-700 email-cell">{{ log.user.email }}</span>
                             </div>
-                            <span class="text-sm font-bold text-slate-700">{{ log.user.email }}</span>
-                        </div>
-                    </td>
-                    <td class="px-8 py-5 text-sm text-slate-500 font-medium">{{ log.date.strftime('%Y-%m-%d') }}</td>
-                    <td class="px-8 py-5">
-                        <span class="text-sm font-bold text-emerald-600">{{ log.clock_in.strftime('%H:%M:%S') if log.clock_in else '--:--' }}</span>
-                    </td>
-                    <td class="px-8 py-5">
-                        <span class="text-sm font-bold text-rose-600">{{ log.clock_out.strftime('%H:%M:%S') if log.clock_out else 'Still In' }}</span>
-                    </td>
-                    <td class="px-8 py-5">
-                        {% if log.clock_out %}
-                            <span class="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg uppercase">Shift Ended</span>
-                        {% else %}
-                            <span class="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-lg uppercase italic animate-pulse">On Duty</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+
+                        <td class="px-8 py-5 text-sm text-slate-500 font-bold">
+                            {{ log.date.strftime('%d %b') }}
+                        </td>
+
+                        <td class="px-8 py-5 text-sm font-black text-emerald-600">
+                            {{ log.clock_in.strftime('%I:%M %p') if log.clock_in else '--:--' }}
+                        </td>
+
+                        <td class="px-8 py-5 text-sm font-black text-rose-600">
+                            {{ log.clock_out.strftime('%I:%M %p') if log.clock_out else 'LIVE' }}
+                        </td>
+                        
+                        <td class="px-8 py-5">
+                            <span class="text-xs font-black {% if log.clock_out %}text-slate-600 bg-slate-100{% else %}text-blue-500 animate-pulse italic{% endif %} px-3 py-1 rounded-lg">
+                                {{ log.display_duration }}
+                            </span>
+                        </td>
+
+                        <td class="px-8 py-5 text-center">
+                            {% if log.location and 'Lat:' in log.location %}
+                                {% set coords = log.location.replace('Lat: ', '').replace(' Lon: ', ',') %}
+                                <a href="https://www.google.com/maps?q={{ coords }}" target="_blank" 
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="text-[10px] text-slate-300 font-bold italic uppercase">Offline</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<script>
+function filterLogs() {
+    let input = document.getElementById("logSearch");
+    let filter = input.value.toLowerCase();
+    let table = document.getElementById("attendanceTable");
+    let tr = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < tr.length; i++) {
+        let emailField = tr[i].getElementsByClassName("email-cell")[0];
+        if (emailField) {
+            let txtValue = emailField.textContent || emailField.innerText;
+            tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+}
+</script>
 {% endblock %}

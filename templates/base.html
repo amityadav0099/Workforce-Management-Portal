@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <title>{% block title %}T3X Connect{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -149,8 +150,8 @@
                     message.style.transform = 'translateY(-10px)';
                     setTimeout(function() {
                         message.remove();
-                    }, 500);
-                }, 3000); 
+                    }, 100);
+                }, 1000); 
             });
         });
     </script>

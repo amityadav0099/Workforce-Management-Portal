@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .total { font-weight: bold; background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Salary Statement</h1>
+        <p>Month: {{ record.month }}</p>
+    </div>
+    <p><strong>Employee:</strong> {{ record.user.email }}</p>
+    <table class="table">
+        <tr><th>Basic Salary</th><td>₹{{ "{:,.2f}".format(record.basic_salary) }}</td></tr>
+        <tr><th>Allowances</th><td>₹{{ "{:,.2f}".format(record.allowances) }}</td></tr>
+        <tr><th>Deductions</th><td>- ₹{{ "{:,.2f}".format(record.deductions) }}</td></tr>
+        <tr class="total"><th>Net Payable</th><td>₹{{ "{:,.2f}".format(record.net_salary) }}</td></tr>
+    </table>
+</body>
+</html>
