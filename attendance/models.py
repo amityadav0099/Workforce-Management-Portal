@@ -9,6 +9,6 @@ class Attendance(db.Model):
     clock_in = db.Column(db.Time, nullable=False)
     clock_out = db.Column(db.Time, nullable=True)
     total_hours = db.Column(db.Float, default=0.0)
-    location = db.Column(db.String(255), nullable=True)
+    location = db.Column(db.String(255))
 
     user = db.relationship("User", backref=db.backref("attendance_logs", lazy=True))
