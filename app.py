@@ -123,6 +123,17 @@ def reset_password(token):
 
 # ================= APP STARTUP =================
 
+@app.route('/fix-db')
+def fix_db():
+    try:
+        from sqlalchemy import text
+        # This command adds the missing column to your PostgreSQL DB on Render
+        db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location VARCHAR(255)"))
+        db.session.commit()
+        return "Database updated successfully! ✅"
+    except Exception as e:
+        return f"Error updating database: {str(e)} ❌"
+
 if __name__ == "__main__":
     # Local development only
     app.run(debug=True)
