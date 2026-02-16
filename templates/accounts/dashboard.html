@@ -31,33 +31,34 @@
         </div>
 
         <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-            <div class="flex justify-between items-start mb-4">
-                <div class="w-12 h-12 {{ 'bg-rose-50 text-rose-600' if active_log else 'bg-amber-50 text-amber-600' }} rounded-2xl flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                {% if active_log %}
-                    <span class="text-rose-600 text-[10px] font-black uppercase bg-rose-50 px-3 py-1 rounded-lg animate-pulse">On Duty</span>
-                {% else %}
-                    <span class="text-amber-600 text-[10px] font-black uppercase bg-amber-50 px-3 py-1 rounded-lg">Off Duty</span>
-                {% endif %}
-            </div>
-            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Shift Control</h3>
-            
-            {% if not active_log %}
-                <form id="clock-in-form" action="{{ url_for('attendance.clock_in') }}" method="POST" class="mt-2">
-                    <input type="hidden" name="location" id="user-coords">
-                    <button type="button" onclick="getLocationAndSubmit()" class="w-full py-3 bg-slate-900 text-white text-sm font-bold rounded-2xl hover:bg-black transition-all">
-                        Clock In
-                    </button>
-                </form>
-            {% else %}
-                <form action="{{ url_for('attendance.clock_out') }}" method="POST" class="mt-2">
-                    <button type="submit" class="w-full py-3 bg-rose-500 text-white text-sm font-bold rounded-2xl hover:bg-rose-600 transition-all">
-                        Clock Out
-                    </button>
-                </form>
-            {% endif %}
+    <div class="flex justify-between items-start mb-4">
+        <div class="w-12 h-12 {{ 'bg-rose-50 text-rose-600' if active_log else 'bg-amber-50 text-amber-600' }} rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
+        {% if active_log %}
+            <span class="text-rose-600 text-[10px] font-black uppercase bg-rose-50 px-3 py-1 rounded-lg animate-pulse">On Duty</span>
+        {% else %}
+            <span class="text-amber-600 text-[10px] font-black uppercase bg-amber-50 px-3 py-1 rounded-lg">Off Duty</span>
+        {% endif %}
+    </div>
+    <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Shift Control</h3>
+    
+    {% if not active_log %}
+        <form id="clock-in-form" action="{{ url_for('attendance.clock_in') }}" method="POST" class="mt-2">
+            <input type="hidden" name="location" id="user-coords">
+            <button type="button" onclick="getLocationAndSubmit('clock-in-form', 'user-coords')" class="w-full py-3 bg-slate-900 text-white text-sm font-bold rounded-2xl hover:bg-black transition-all">
+                Clock In
+            </button>
+        </form>
+    {% else %}
+        <form id="clock-out-form" action="{{ url_for('attendance.clock_out') }}" method="POST" class="mt-2">
+            <input type="hidden" name="location" id="user-coords-out">
+            <button type="button" onclick="getLocationAndSubmit('clock-out-form', 'user-coords-out')" class="w-full py-3 bg-rose-500 text-white text-sm font-bold rounded-2xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200">
+                Clock Out
+            </button>
+        </form>
+    {% endif %}
+</div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -125,10 +126,16 @@
 </div>
 
 <script>
-    // Geolocation Handling Function
-    function getLocationAndSubmit() {
-        const coordsInput = document.getElementById('user-coords');
-        const form = document.getElementById('clock-in-form');
+    // Improved Geolocation Function to handle both IN and OUT
+    function getLocationAndSubmit(formId, inputId) {
+        const coordsInput = document.getElementById(inputId);
+        const form = document.getElementById(formId);
+        
+        // Show a "loading" state on the button
+        const btn = form.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Locating...";
+        btn.disabled = true;
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -137,11 +144,11 @@
                     form.submit();
                 },
                 (error) => {
-                    console.warn("Geolocation blocked or failed:", error.message);
+                    console.warn("Geolocation failed:", error.message);
                     coordsInput.value = "Location Denied";
                     form.submit();
                 },
-                { timeout: 8000 } // Wait 8 seconds for GPS
+                { timeout: 8000, enableHighAccuracy: true }
             );
         } else {
             coordsInput.value = "Browser Not Supported";
@@ -149,19 +156,20 @@
         }
     }
 
-    // Timer logic
+    // Timer logic remains the same
     {% if active_log %}
     (function() {
-        const punchInStr = "{{ active_log.clock_in.strftime('%H:%M:%S') }}";
-        const [hours, minutes, seconds] = punchInStr.split(':').map(Number);
-        
-        const startTime = new Date();
-        startTime.setHours(hours, minutes, seconds);
+        // Use a more robust date parsing for the timer
+        // We use the date from the server to avoid local machine time drift
+        const punchInStr = "{{ active_log.clock_in.strftime('%Y-%m-%d %H:%M:%S') }}";
+        const startTime = new Date(punchInStr.replace(/-/g, '/')); 
 
         function updateTimer() {
             const now = new Date();
             let diff = now - startTime;
-            if (diff < 0) diff += 86400000; 
+            
+            // If the difference is negative (timezone issues), default to 0
+            if (diff < 0) diff = 0; 
             
             const h = Math.floor(diff / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);

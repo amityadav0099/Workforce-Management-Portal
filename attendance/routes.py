@@ -7,15 +7,14 @@ from accounts.decorators import login_required, role_required
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendance")
 
-# Define Timezone
+# Define Timezone (IST)
 IST = pytz.timezone('Asia/Kolkata')
 
 def calculate_hms(dt_in, dt_out):
-    """Helper to calculate hours, minutes, and seconds between two datetimes."""
+    """Calculates hours, minutes, and seconds between two localized datetimes."""
     diff = dt_out - dt_in
     total_seconds = int(diff.total_seconds())
     
-    # Handle negative duration just in case
     if total_seconds < 0:
         return "0h 0m 0s"
         
@@ -28,20 +27,20 @@ def calculate_hms(dt_in, dt_out):
 @login_required
 def clock_in():
     user_id = session.get("user_id")
-    # Use IST to determine 'today' to prevent midnight date-mismatch
     now_ist = datetime.now(IST)
     today = now_ist.date()
     
     existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
     
     if not existing:
+        # Capture the location string from the hidden input in your dashboard form
         user_location = request.form.get('location', 'Location Not Captured')
         
         new_entry = Attendance(
             user_id=user_id, 
             date=today,
-            clock_in=now_ist, # Storing full IST datetime
-            location=user_location
+            clock_in=now_ist, 
+            location=user_location  # Clock-in location
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -61,9 +60,13 @@ def clock_out():
     record = Attendance.query.filter_by(user_id=user_id, date=today).first()
     
     if record and not record.clock_out:
+        # NEW: Capture the location during clock-out
+        user_location_out = request.form.get('location', 'Location Not Captured')
+        
         record.clock_out = now_ist
+        record.location_out = user_location_out  # Store the logout spot
         db.session.commit()
-        flash("Clocked out successfully! Have a great evening. 👋", "success")
+        flash("Clocked out successfully! 👋", "success")
     else:
         flash("Clock out failed. No active shift found.", "rose")
         
@@ -78,18 +81,17 @@ def manage_attendance():
 
     for log in attendance_list:
         if log.clock_in:
-            # Ensure dt_in is a timezone-aware datetime
+            # Ensure we are working with localized datetimes for duration math
             dt_in = log.clock_in
             if dt_in.tzinfo is None:
-                dt_in = IST.localize(datetime.combine(log.date, dt_in)) if not isinstance(dt_in, datetime) else IST.localize(dt_in)
+                dt_in = IST.localize(dt_in)
 
-            # Determine end point for duration
             if log.clock_out:
                 dt_out = log.clock_out
                 if dt_out.tzinfo is None:
-                    dt_out = IST.localize(dt_out) if isinstance(dt_out, datetime) else IST.localize(datetime.combine(log.date, dt_out))
+                    dt_out = IST.localize(dt_out)
             else:
-                dt_out = now_ist # For live tracking
+                dt_out = now_ist # Live duration calculation
             
             log.display_duration = calculate_hms(dt_in, dt_out)
             log.is_live = not bool(log.clock_out)
@@ -111,12 +113,12 @@ def attendance_history():
         if log.clock_in:
             dt_in = log.clock_in
             if dt_in.tzinfo is None:
-                dt_in = IST.localize(dt_in) if isinstance(dt_in, datetime) else IST.localize(datetime.combine(log.date, dt_in))
+                dt_in = IST.localize(dt_in)
             
             if log.clock_out:
                 dt_out = log.clock_out
                 if dt_out.tzinfo is None:
-                    dt_out = IST.localize(dt_out) if isinstance(dt_out, datetime) else IST.localize(datetime.combine(log.date, dt_out))
+                    dt_out = IST.localize(dt_out)
             else:
                 dt_out = now_ist
                 
