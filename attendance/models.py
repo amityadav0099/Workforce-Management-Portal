@@ -11,7 +11,7 @@ class Attendance(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     
     # Use a lambda that respects IST for the default date
-    date = db.Column(db.Date, nullable=False, default=lambda: datetime.now(IST).date())
+    date = db.Column(db.Date, nullable=False, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')).date())
     
     # Changed from db.Time to db.DateTime for better math and timezone support
     clock_in = db.Column(db.DateTime, nullable=False)
