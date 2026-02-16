@@ -3,7 +3,7 @@
 {% block page_title %}Attendance Logs{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
+<div class="max-w-6xl mx-auto pb-20">
     <div class="flex flex-col md:flex-row gap-4 mb-6">
         <div class="relative flex-1">
             <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -33,11 +33,10 @@
                 <thead>
                     <tr class="bg-slate-50/50">
                         <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
-                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Clock In</th>
-                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Clock Out</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timings</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Exact Locations</th>
                         <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
-                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Location</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Map</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
@@ -48,20 +47,36 @@
                                 <div class="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-[10px] shrink-0">
                                     {{ log.user.email[0] | upper }}
                                 </div>
-                                <span class="text-sm font-bold text-slate-700 email-cell">{{ log.user.email }}</span>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-slate-700 email-cell">{{ log.user.email }}</span>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase">{{ log.date.strftime('%d %b, %Y') }}</span>
+                                </div>
                             </div>
                         </td>
 
-                        <td class="px-8 py-5 text-sm text-slate-500 font-bold">
-                            {{ log.date.strftime('%d %b') }}
+                        <td class="px-8 py-5">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[11px] font-black text-emerald-600 uppercase">In: {{ log.clock_in.strftime('%I:%M:%S %p') }}</span>
+                                <span class="text-[11px] font-black text-rose-600 uppercase">
+                                    Out: {{ log.clock_out.strftime('%I:%M:%S %p') if log.clock_out else 'Active' }}
+                                </span>
+                            </div>
                         </td>
-                        <td class="px-8 py-5 text-sm font-black text-emerald-600">
-    {{ log.clock_in.strftime('%I:%M:%S %p') if log.clock_in else '--:--:--' }}
-</td>
 
-<td class="px-8 py-5 text-sm font-black text-rose-600">
-    {{ log.clock_out.strftime('%I:%M:%S %p') if log.clock_out else 'LIVE' }}
-</td>
+                        <td class="px-8 py-5">
+                            <div class="flex flex-col gap-2 max-w-[200px]">
+                                <div class="flex flex-col">
+                                    <span class="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">Clock-In Address</span>
+                                    <span class="address-text text-[11px] text-slate-600 font-medium truncate" data-coords="{{ log.location }}">Loading...</span>
+                                </div>
+                                {% if log.location_out %}
+                                <div class="flex flex-col">
+                                    <span class="text-[8px] font-black text-rose-400 uppercase tracking-tighter">Clock-Out Address</span>
+                                    <span class="address-text text-[11px] text-slate-600 font-medium truncate" data-coords="{{ log.location_out }}">Loading...</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
                         
                         <td class="px-8 py-5">
                             <span class="text-xs font-black {% if log.clock_out %}text-slate-600 bg-slate-100{% else %}text-blue-500 animate-pulse italic{% endif %} px-3 py-1 rounded-lg">
@@ -70,15 +85,14 @@
                         </td>
 
                         <td class="px-8 py-5 text-center">
-                            {% if log.location and 'Lat:' in log.location %}
-                                {% set coords = log.location.replace('Lat: ', '').replace(' Lon: ', ',') %}
-                                <a href="https://www.google.com/maps?q={{ coords }}" target="_blank" 
-                                   class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all">
+                            {% if log.location %}
+                                <button onclick="openExactMap(this)" 
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border-none cursor-pointer">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
-                                </a>
+                                </button>
                             {% else %}
                                 <span class="text-[10px] text-slate-300 font-bold italic uppercase">Offline</span>
                             {% endif %}
@@ -92,6 +106,7 @@
 </div>
 
 <script>
+// Search Functionality
 function filterLogs() {
     let input = document.getElementById("logSearch");
     let filter = input.value.toLowerCase();
@@ -104,6 +119,52 @@ function filterLogs() {
             let txtValue = emailField.textContent || emailField.innerText;
             tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
         }
+    }
+}
+
+// Reverse Geocoding Logic (Translate coordinates to address)
+document.addEventListener("DOMContentLoaded", function() {
+    const addressElements = document.querySelectorAll('.address-text');
+    addressElements.forEach(el => {
+        const rawCoords = el.getAttribute('data-coords');
+        
+        if (!rawCoords || rawCoords.includes('Not Captured') || !rawCoords.includes('Lat:')) {
+            el.innerText = "Location N/A";
+            return;
+        }
+
+        const cleanStr = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
+        const coords = cleanStr.split(',');
+        const lat = coords[0].trim();
+        const lon = coords[1].trim();
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.display_name) {
+                    const parts = data.display_name.split(',');
+                    const addressSnippet = parts[0] + (parts[1] ? ', ' + parts[1] : '');
+                    el.innerText = addressSnippet;
+                    el.title = data.display_name;
+                }
+            })
+            .catch(() => { el.innerText = "Address Locked"; });
+    });
+});
+
+// Map Button: Search by Address Name
+function openExactMap(button) {
+    const row = button.closest('tr');
+    const addressElement = row.querySelector('.address-text');
+    const addressText = addressElement.innerText;
+
+    if (addressText && addressText !== "Loading..." && addressText !== "Location N/A") {
+        const query = encodeURIComponent(addressText);
+        window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    } else {
+        const rawCoords = addressElement.getAttribute('data-coords');
+        const cleanCoords = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
+        window.open(`https://www.google.com/maps/search/?api=1&query=${cleanCoords}`, '_blank');
     }
 }
 </script>
