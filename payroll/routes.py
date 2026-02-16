@@ -1,5 +1,6 @@
 import csv
 import io
+import pandas as pd
 import pdfkit
 from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response
 from extensions import db
@@ -103,6 +104,59 @@ def delete_payroll(record_id):
     db.session.commit()
     flash("Record deleted.", "success")
     return redirect(url_for('payroll.manage_payroll', month=month))
+
+
+@payroll_bp.route('/import-payroll', methods=['POST'])
+def import_payroll():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        flash('Please select a valid Excel file', 'error')
+        return redirect(url_for('payroll.manage'))
+
+    try:
+        # Load the Excel/CSV data
+        if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
+            df = pd.read_excel(file)
+        else:
+            df = pd.read_csv(file)
+
+        # Standardize column names to match your Excel logic
+        df.columns = [c.lower().strip() for c in df.columns]
+
+        for _, row in df.iterrows():
+            email = str(row.get('email', '')).strip()
+            user = User.query.filter_by(email=email).first()
+            
+            if user:
+                # Using your specific model field names
+                basic = float(row.get('basic_salary', 0))
+                allow = float(row.get('allowances', 0))
+                deduct = float(row.get('deductions', 0))
+                net = basic + allow - deduct
+                
+                # Check for existing record for this user this month
+                current_month = datetime.now().strftime("%B %Y")
+                record = PayrollRecord.query.filter_by(user_id=user.id, month=current_month).first()
+                
+                if not record:
+                    record = PayrollRecord(user_id=user.id, month=current_month)
+                
+                record.basic_salary = basic
+                record.allowances = allow
+                record.deductions = deduct
+                record.net_salary = net
+                record.status = "Ready" # Matches your default 'Pending' style
+                
+                db.session.add(record)
+        
+        db.session.commit()
+        flash('Excel Payroll imported and processed successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Import Error: {str(e)}', 'error')
+
+    return redirect(url_for('payroll.manage'))
 
 @payroll_bp.route("/export-csv")
 @login_required

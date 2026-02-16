@@ -10,6 +10,16 @@
         <p class="text-slate-500 font-medium tracking-tight">Review and process employee monthly disbursements.</p>
     </div>
     <div class="flex items-center gap-3">
+        <form action="{{ url_for('payroll.import_payroll') }}" method="POST" enctype="multipart/form-data" id="importForm">
+            <label class="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-100">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Import Excel
+                <input type="file" name="file" class="hidden" accept=".xlsx, .xls, .csv" onchange="document.getElementById('importForm').submit()">
+            </label>
+        </form>
+
         <a href="{{ url_for('payroll.export_payroll_csv', month=selected_month) }}" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 rounded-2xl text-sm font-bold transition-all flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             Export CSV
