@@ -106,10 +106,12 @@
         <main class="flex-1 p-10 overflow-y-auto max-h-screen">
             <header class="flex justify-between items-center mb-12">
                 <div>
+                    {% if request.path == url_for('accounts.dashboard') %}
                     <h1 class="text-3xl font-black text-slate-900 tracking-tight">
                         {% block page_title %}Dashboard{% endblock %}
                     </h1>
                     <p class="text-slate-400 text-sm font-medium mt-1">Welcome back to T3X Connect</p>
+                    {% endif %}
                 </div>
                 
                 <div class="flex items-center gap-6">
