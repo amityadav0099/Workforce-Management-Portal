@@ -1,16 +1,15 @@
 FROM python:3.11-slim
 
-# Install system dependencies for wkhtmltopdf
+# Install system dependencies for PDF generation
 RUN apt-get update && apt-get install -y \
     wkhtmltopdf \
-    xvfb \
     libfontconfig1 \
     libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . /app
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Start the app
+# Start the application
 CMD ["gunicorn", "app:app"]

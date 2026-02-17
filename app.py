@@ -130,7 +130,9 @@ def fix_db():
     try:
         from sqlalchemy import text
         # This command adds the missing column to your PostgreSQL DB on Render
-        db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location VARCHAR(255)"))
+        
+        db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
+        db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
         db.session.commit()
         return "Database updated successfully! ✅"
     except Exception as e:
