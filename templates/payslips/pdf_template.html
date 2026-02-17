@@ -1,12 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <style>
-        body { font-family: sans-serif; color: #333; padding: 20px; }
-        .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .details { margin: 20px 0; width: 100%; border-collapse: collapse; }
-        .details td { padding: 10px; border: 1px solid #eee; }
-        .total { background: #f9f9f9; font-weight: bold; font-size: 1.2em; }
+        /* Modern Tailwind-style base */
+        body { 
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; 
+            color: #1e293b; /* slate-800 */
+            padding: 40px; 
+            background-color: #ffffff;
+        }
+
+        /* Header logic with Tailwind slate-50 styling */
+        .header { 
+            text-align: center; 
+            background-color: #f8fafc; /* slate-50 */
+            border: 1px solid #e2e8f0; /* slate-200 */
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            font-weight: 800; /* font-black */
+            color: #0f172a; /* slate-900 */
+        }
+
+        .header p { 
+            margin: 8px 0 0; 
+            color: #64748b; /* slate-500 */
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 12px;
+        }
+
+        /* Table mimicking Tailwind's spacing and borders */
+        .details { 
+            margin: 20px 0; 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0;
+        }
+
+        .details td { 
+            padding: 16px; 
+            border-bottom: 1px solid #f1f5f9; /* slate-100 */
+            font-size: 14px;
+        }
+
+        /* Row labels mimicking font-semibold text-slate-500 */
+        .label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* Values mimicking font-bold text-slate-800 */
+        .value {
+            text-align: right;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* Total row mimicking bg-slate-900 text-white rounded layout */
+        .total { 
+            background-color: #0f172a; /* slate-900 */
+            color: #ffffff; 
+            font-weight: 800; 
+        }
+
+        .total td {
+            padding: 20px 16px;
+            border: none;
+        }
+
+        .total-label { border-radius: 12px 0 0 12px; }
+        .total-value { border-radius: 0 12px 12px 0; font-size: 1.25rem; }
+
+        /* Footer mimicking text-slate-400 */
+        .footer {
+            font-size: 10px; 
+            text-align: center; 
+            margin-top: 60px; 
+            color: #94a3b8; /* slate-400 */
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -14,12 +94,29 @@
         <h1>{{ slip.user.email }}</h1>
         <p>Monthly Payslip: {{ slip.month }}</p>
     </div>
+
     <table class="details">
-        <tr><td>Basic Salary</td><td>₹{{ "{:,.2f}".format(slip.basic_salary) }}</td></tr>
-        <tr><td>Allowances</td><td>₹{{ "{:,.2f}".format(slip.allowances) }}</td></tr>
-        <tr><td>Deductions (Tax & PF)</td><td style="color: red;">-₹{{ "{:,.2f}".format(slip.deductions) }}</td></tr>
-        <tr class="total"><td>Net Payable</td><td>₹{{ "{:,.2f}".format(slip.net_salary) }}</td></tr>
+        <tr>
+            <td class="label">Basic Salary</td>
+            <td class="value">₹{{ "{:,.2f}".format(slip.basic_salary) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Allowances</td>
+            <td class="value" style="color: #10b981;">+ ₹{{ "{:,.2f}".format(slip.allowances) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Deductions (Tax & PF)</td>
+            <td class="value" style="color: #ef4444;">-₹{{ "{:,.2f}".format(slip.deductions) }}</td>
+        </tr>
+        <tr class="total">
+            <td class="total-label">Net Payable</td>
+            <td class="total-value" style="text-align: right;">₹{{ "{:,.2f}".format(slip.net_salary) }}</td>
+        </tr>
     </table>
-    <p style="font-size: 10px; text-align: center; margin-top: 50px;">This is a computer-generated document and does not require a signature.</p>
+
+    <div class="footer">
+        <p>This is a computer-generated document and does not require a signature.</p>
+        <p style="font-weight: 700;">T3X CONNECT WORKFORCE MANAGEMENT</p>
+    </div>
 </body>
 </html>

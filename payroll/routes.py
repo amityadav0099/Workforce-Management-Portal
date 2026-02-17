@@ -2,7 +2,8 @@ import csv
 import io
 import pandas as pd
 import pdfkit
-from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response
+import platform
+from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response, current_app
 from extensions import db
 from accounts.models import User
 from accounts.decorators import login_required, role_required
@@ -17,7 +18,6 @@ payroll_bp = Blueprint("payroll", __name__, url_prefix="/payroll")
 def manage_payroll():
     """Main dashboard with full-year filter."""
     selected_month = request.args.get('month', datetime.now().strftime('%B 2026'))
-    # Generates Jan 2026 to Dec 2026
     month_options = [datetime(2026, m, 1).strftime('%B 2026') for m in range(1, 13)]
     payroll_records = PayrollRecord.query.filter_by(month=selected_month).all()
     
@@ -32,27 +32,22 @@ def manage_payroll():
 @login_required
 @role_required("hr")
 def generate_salary(user_id):
-    """Handles individual salary review/edit and SAVE logic."""
     user = User.query.get_or_404(user_id)
-    # Get current month or the one being processed
     current_month = datetime.now().strftime('%B 2026')
     record = PayrollRecord.query.filter_by(user_id=user_id, month=current_month).first()
 
     if request.method == "POST":
-        # Get data from the form (generate_form.html)
         basic = float(request.form.get('basic_salary', 0))
         allow = float(request.form.get('allowances', 0))
         deduct = float(request.form.get('deductions', 0))
         net = basic + allow - deduct
 
         if record:
-            # Update existing record
             record.basic_salary = basic
             record.allowances = allow
             record.deductions = deduct
             record.net_salary = net
         else:
-            # Create new record if it doesn't exist
             record = PayrollRecord(
                 user_id=user_id,
                 month=current_month,
@@ -105,22 +100,21 @@ def delete_payroll(record_id):
     flash("Record deleted.", "success")
     return redirect(url_for('payroll.manage_payroll', month=month))
 
-
 @payroll_bp.route('/import-payroll', methods=['POST'])
+@login_required
+@role_required("hr")
 def import_payroll():
     file = request.files.get('file')
     if not file or file.filename == '':
         flash('Please select a valid Excel file', 'error')
-        return redirect(url_for('payroll.manage'))
+        return redirect(url_for('payroll.manage_payroll'))
 
     try:
-        # Load the Excel/CSV data
         if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
             df = pd.read_excel(file)
         else:
             df = pd.read_csv(file)
 
-        # Standardize column names to match your Excel logic
         df.columns = [c.lower().strip() for c in df.columns]
 
         for _, row in df.iterrows():
@@ -128,14 +122,12 @@ def import_payroll():
             user = User.query.filter_by(email=email).first()
             
             if user:
-                # Using your specific model field names
                 basic = float(row.get('basic_salary', 0))
                 allow = float(row.get('allowances', 0))
                 deduct = float(row.get('deductions', 0))
                 net = basic + allow - deduct
                 
-                # Check for existing record for this user this month
-                current_month = datetime.now().strftime("%B %Y")
+                current_month = datetime.now().strftime("%B 2026")
                 record = PayrollRecord.query.filter_by(user_id=user.id, month=current_month).first()
                 
                 if not record:
@@ -145,18 +137,17 @@ def import_payroll():
                 record.allowances = allow
                 record.deductions = deduct
                 record.net_salary = net
-                record.status = "Ready" # Matches your default 'Pending' style
-                
+                record.status = "Processed"
                 db.session.add(record)
         
         db.session.commit()
-        flash('Excel Payroll imported and processed successfully!', 'success')
+        flash('Excel Payroll imported successfully!', 'success')
         
     except Exception as e:
         db.session.rollback()
         flash(f'Import Error: {str(e)}', 'error')
 
-    return redirect(url_for('payroll.manage'))
+    return redirect(url_for('payroll.manage_payroll'))
 
 @payroll_bp.route("/export-csv")
 @login_required
@@ -177,14 +168,34 @@ def export_payroll_csv():
 @payroll_bp.route("/download-payslip/<int:record_id>")
 @login_required
 def download_payslip(record_id):
-    record = PayrollRecord.query.get_or_404(record_id)
-    html = render_template("payroll/payslip_pdf.html", record=record)
+    try:
+        record = PayrollRecord.query.get_or_404(record_id)
+        
+        # KEY FIX: Pass variable as 'slip' to match your HTML template logic
+        html = render_template("pdf_template.html", slip=record)
 
-    path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-    config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-    pdf = pdfkit.from_string(html, False, configuration=config)
-    
-    response = make_response(pdf)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=Payslip_{record.user.email}.pdf'
-    return response
+        # KEY FIX: Dynamic path for Linux Public Server
+        if platform.system() == "Windows":
+            path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+            config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        else:
+            path_wkhtmltopdf = '/usr/bin/wkhtmltopdf'
+            config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+
+        options = {
+            'page-size': 'A4',
+            'encoding': "UTF-8",
+            'no-outline': None,
+            'quiet': ''
+        }
+        
+        pdf = pdfkit.from_string(html, False, configuration=config, options=options)
+        
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=Payslip_{record.user.email}_{record.month}.pdf'
+        return response
+    except Exception as e:
+        current_app.logger.error(f"PDF Error: {str(e)}")
+        flash("PDF service failed on server. Please ensure wkhtmltopdf is installed.", "danger")
+        return redirect(url_for('payroll.manage_payroll'))
