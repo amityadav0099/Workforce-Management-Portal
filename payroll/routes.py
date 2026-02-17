@@ -172,7 +172,7 @@ def download_payslip(record_id):
         record = PayrollRecord.query.get_or_404(record_id)
         
         # KEY FIX: Pass variable as 'slip' to match your HTML template logic
-        html = render_template("pdf_template.html", slip=record)
+        html = render_template("payslips/pdf_template.html", slip=record)
 
         # KEY FIX: Dynamic path for Linux Public Server
         if platform.system() == "Windows":

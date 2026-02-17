@@ -11,6 +11,7 @@ from accounts.decorators import login_required
 from datetime import datetime
 from attendance.routes import attendance_bp
 import os
+import socket
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -87,6 +88,7 @@ def dashboard_redirect():
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
+        socket.setdefaulttimeout(15)
         email = request.form.get('email')
         user = User.query.filter_by(email=email).first()
         if user:
