@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, session, make_response
+from flask import render_template, make_response, current_app, flash, redirect, url_for
 from payslips.models import Payslip
 from accounts.decorators import login_required
 import pdfkit
+import platform
 
 payslips_bp = Blueprint("payslips", __name__, url_prefix="/payslips")
 
@@ -23,22 +25,44 @@ def view_payslips():
 
 @payslips_bp.route("/download/<int:slip_id>")
 @login_required
-def download_payslip(slip_id):
-    u_id = session.get("user_id")
-    role = session.get("role")
-
-    if role == "hr":
-        slip = Payslip.query.get_or_404(slip_id)
-    else:
-        slip = Payslip.query.filter_by(id=slip_id, user_id=u_id).first_or_404()
-    
-    rendered = render_template("payslips/pdf_template.html", slip=slip)
-    
+def download_payslip(payslip_id):
     try:
-        pdf = pdfkit.from_string(rendered, False)
+        # 1. Fetch payslip data from your database
+        payslip = Payslip.query.get_or_404(payslip_id)
+        
+        # 2. Render the HTML template specifically designed for PDF
+        html = render_template('payslips/payslip_pdf_template.html', payslip=payslip)
+        
+        # 3. Handle Binary Path for Public Server (Render/Linux) vs Local (Windows)
+        if platform.system() == "Windows":
+            path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+            config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        else:
+            # On Render/Ubuntu, it is usually just 'wkhtmltopdf' in the PATH
+            config = pdfkit.configuration(wkhtmltopdf='/usr/bin/wkhtmltopdf')
+
+        # 4. PDF Options for better layout
+        options = {
+            'page-size': 'Letter',
+            'margin-top': '0.75in',
+            'margin-right': '0.75in',
+            'margin-bottom': '0.75in',
+            'margin-left': '0.75in',
+            'encoding': "UTF-8",
+            'no-outline': None
+        }
+
+        # 5. Generate PDF
+        pdf = pdfkit.from_string(html, False, configuration=config, options=options)
+        
+        # 6. Build the response
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=Payslip_{slip.month}.pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=payslip_{payslip.id}.pdf'
+        
         return response
+
     except Exception as e:
-        return f"PDF Error: {str(e)}", 500
+        print(f"PDF Error: {str(e)}")
+        flash("PDF service is currently unavailable on this server. Please contact HR.", "danger")
+        return redirect(url_for('payroll.manage_payroll'))
