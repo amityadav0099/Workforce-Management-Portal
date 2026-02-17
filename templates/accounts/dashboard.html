@@ -43,21 +43,23 @@
             </div>
             <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Shift Control</h3>
             
-            {% if not active_log %}
-        <form id="clock-in-form" action="{{ url_for('attendance.clock_in') }}" method="POST">
-            <input type="hidden" name="location" id="user-coords-in">
-            <button type="button" onclick="getLocationAndSubmit('clock-in-form', 'user-coords-in')" class="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold">
-                Clock In
-            </button>
-        </form>
-    {% else %}
-        <form id="clock-out-form" action="{{ url_for('attendance.clock_out') }}" method="POST">
-            <input type="hidden" name="location" id="user-coords-out"> 
-    <button type="button" onclick="getLocationAndSubmit('clock-out-form', 'user-coords-out')" class="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold">
-        Clock Out
-    </button>
-        </form>
-    {% endif %}
+            <div class="mt-4">
+                {% if not active_log %}
+                <form id="clock-in-form" action="{{ url_for('attendance.clock_in') }}" method="POST">
+                    <input type="hidden" name="location" id="user-coords-in">
+                    <button type="button" onclick="getLocationAndSubmit('clock-in-form', 'user-coords-in')" class="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
+                        Clock In
+                    </button>
+                </form>
+                {% else %}
+                <form id="clock-out-form" action="{{ url_for('attendance.clock_out') }}" method="POST">
+                    <input type="hidden" name="location" id="user-coords-out"> 
+                    <button type="button" onclick="getLocationAndSubmit('clock-out-form', 'user-coords-out')" class="w-full py-3 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all">
+                        Clock Out
+                    </button>
+                </form>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -80,9 +82,9 @@
                         <p class="text-xl font-black text-slate-700">{{ active_log.clock_in.strftime('%I:%M %p') }}</p>
                     </div>
                     <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
-    <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
-    <p id="timerDisplay" class="text-xl font-black text-blue-600">{{ display_duration }}</p>
-</div>
+                        <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
+                        <p id="timerDisplay" class="text-xl font-black text-blue-600">{{ display_duration }}</p>
+                    </div>
                 </div>
                 {% else %}
                 <div class="flex flex-col items-center justify-center py-6 text-center">
@@ -131,10 +133,12 @@
         const form = document.getElementById(formId);
         const btn = form.querySelector('button');
         
+        // Visual feedback during GPS capture
+        const originalText = btn.innerHTML;
         btn.innerHTML = `
             <span class="flex items-center justify-center gap-2">
                 <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                Locating...
+                Verifying Location...
             </span>
         `;
         btn.disabled = true;
@@ -142,32 +146,32 @@
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    coordsInput.value = `Lat: ${position.coords.latitude}, Lon: ${position.coords.longitude}`; 
+                    // Send RAW coordinates (lat, lon) for cleaner logs and mapping
+                    coordsInput.value = `${position.coords.latitude},${position.coords.longitude}`; 
                     form.submit();
                 },
                 (error) => {
-                    let errorMsg = "Location Denied";
-                    if (error.code === 2) errorMsg = "Position Unavailable";
-                    if (error.code === 3) errorMsg = "Timeout";
-                    coordsInput.value = errorMsg;
+                    // Handle failure gracefully on public servers (like non-HTTPS blocks)
+                    console.warn("Location error:", error.message);
+                    coordsInput.value = "GPS_DENIED";
                     form.submit();
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
             );
         } else {
-            coordsInput.value = "Browser Not Supported";
+            coordsInput.value = "BROWSER_UNSUPPORTED";
             form.submit();
         }
     }
 
     {% if active_log %}
     (function() {
-        // We use the raw server timestamp to prevent JS date parsing errors
+        // Use ISO format to initialize the JS timer safely
         const startTime = new Date("{{ active_log.clock_in.isoformat() }}"); 
 
         function updateTimer() {
             const now = new Date();
-            // Math.abs handles potential slight timezone differences between server/client
+            // Use absolute difference to handle server/client clock drift
             let diff = Math.abs(now - startTime); 
             
             const h = Math.floor(diff / 3600000);
