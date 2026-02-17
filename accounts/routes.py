@@ -6,6 +6,10 @@ from accounts.decorators import login_required, role_required
 from attendance.models import Attendance
 import os
 from werkzeug.utils import secure_filename
+from datetime import datetime
+import pytz
+
+IST = pytz.timezone('Asia/Kolkata')
 
 # Blueprint definition
 accounts_bp = Blueprint("accounts", __name__, url_prefix="/accounts")
@@ -61,28 +65,40 @@ def logout():
     session.clear() 
     return redirect(url_for("accounts.login"))
 
+
+
+
 # --- USER ROUTES ---
 
-@accounts_bp.route('/dashboard')
+@accounts_bp.route("/dashboard")
 @login_required 
 def dashboard():
     user_id = session.get("user_id")
-    # Use local time for attendance tracking rather than UTC to avoid date-shift issues
-    today = datetime.now().date() 
+    active_log = Attendance.query.filter_by(user_id=user_id, clock_out=None).first()
+    
+    display_duration = "00:00:00"
+    
+    if active_log and active_log.clock_in:
+        now_ist = datetime.now(IST)
+        
+        # Now that the DB is DATETIME, this check will succeed!
+        if active_log.clock_in.tzinfo is None:
+            localized_start = IST.localize(active_log.clock_in)
+        else:
+            localized_start = active_log.clock_in
 
-    # Look for a record for today where the user has NOT yet clocked out
-    active_log = Attendance.query.filter_by(
-        user_id=user_id, 
-        date=today, 
-        clock_out=None
-    ).first()
+        duration = now_ist - localized_start
+        
+        total_seconds = int(duration.total_seconds())
+        if total_seconds < 0: total_seconds = 0
+        
+        h, remainder = divmod(total_seconds, 3600)
+        m, s = divmod(remainder, 60)
+        display_duration = f"{h:02}:{m:02}:{s:02}"
 
-    return render_template(
-        'accounts/dashboard.html', 
-        role=session.get('role'),
-        user_name=session.get('email'),
-        active_log=active_log  # This powers the button toggle in your HTML
-    )
+    return render_template("accounts/dashboard.html", 
+                       active_log=active_log, 
+                       display_duration=display_duration)
 
 @accounts_bp.route('/clock-in', methods=['POST'])
 @login_required

@@ -11,7 +11,9 @@
     <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">
         <h3 class="font-bold text-slate-800 mb-2">Attendance Overview</h3>
         <p class="text-sm text-slate-500 mb-4">View monthly average attendance across all departments.</p>
-        <button class="text-blue-600 font-bold text-xs uppercase tracking-widest hover:underline">View Detailed Report →</button>
+        <a href="{{ url_for('reports.attendance_report') }}" class="text-blue-600 font-bold text-xs uppercase tracking-tight hover:text-blue-800 transition-colors">
+    View Detailed Report →
+</a>
     </div>
     
     <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">

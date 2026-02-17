@@ -31,34 +31,34 @@
         </div>
 
         <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-    <div class="flex justify-between items-start mb-4">
-        <div class="w-12 h-12 {{ 'bg-rose-50 text-rose-600' if active_log else 'bg-amber-50 text-amber-600' }} rounded-2xl flex items-center justify-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        {% if active_log %}
-            <span class="text-rose-600 text-[10px] font-black uppercase bg-rose-50 px-3 py-1 rounded-lg animate-pulse">On Duty</span>
-        {% else %}
-            <span class="text-amber-600 text-[10px] font-black uppercase bg-amber-50 px-3 py-1 rounded-lg">Off Duty</span>
-        {% endif %}
-    </div>
-    <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Shift Control</h3>
-    
-    {% if not active_log %}
-        <form id="clock-in-form" action="{{ url_for('attendance.clock_in') }}" method="POST" class="mt-2">
-            <input type="hidden" name="location" id="user-coords">
-            <button type="button" onclick="getLocationAndSubmit('clock-in-form', 'user-coords')" class="w-full py-3 bg-slate-900 text-white text-sm font-bold rounded-2xl hover:bg-black transition-all">
+            <div class="flex justify-between items-start mb-4">
+                <div class="w-12 h-12 {{ 'bg-rose-50 text-rose-600' if active_log else 'bg-amber-50 text-amber-600' }} rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                {% if active_log %}
+                    <span class="text-rose-600 text-[10px] font-black uppercase bg-rose-50 px-3 py-1 rounded-lg animate-pulse">On Duty</span>
+                {% else %}
+                    <span class="text-amber-600 text-[10px] font-black uppercase bg-amber-50 px-3 py-1 rounded-lg">Off Duty</span>
+                {% endif %}
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Shift Control</h3>
+            
+            {% if not active_log %}
+        <form id="clock-in-form" action="{{ url_for('attendance.clock_in') }}" method="POST">
+            <input type="hidden" name="location" id="user-coords-in">
+            <button type="button" onclick="getLocationAndSubmit('clock-in-form', 'user-coords-in')" class="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold">
                 Clock In
             </button>
         </form>
     {% else %}
-        <form id="clock-out-form" action="{{ url_for('attendance.clock_out') }}" method="POST" class="mt-2">
-            <input type="hidden" name="location" id="user-coords-out">
-            <button type="button" onclick="getLocationAndSubmit('clock-out-form', 'user-coords-out')" class="w-full py-3 bg-rose-500 text-white text-sm font-bold rounded-2xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200">
-                Clock Out
-            </button>
+        <form id="clock-out-form" action="{{ url_for('attendance.clock_out') }}" method="POST">
+            <input type="hidden" name="location" id="user-coords-out"> 
+    <button type="button" onclick="getLocationAndSubmit('clock-out-form', 'user-coords-out')" class="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold">
+        Clock Out
+    </button>
         </form>
     {% endif %}
-</div>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -80,9 +80,9 @@
                         <p class="text-xl font-black text-slate-700">{{ active_log.clock_in.strftime('%I:%M %p') }}</p>
                     </div>
                     <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
-                        <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
-                        <p id="timerDisplay" class="text-xl font-black text-blue-600">00:00:00</p>
-                    </div>
+    <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
+    <p id="timerDisplay" class="text-xl font-black text-blue-600">{{ display_duration }}</p>
+</div>
                 </div>
                 {% else %}
                 <div class="flex flex-col items-center justify-center py-6 text-center">
@@ -126,29 +126,33 @@
 </div>
 
 <script>
-    // Improved Geolocation Function to handle both IN and OUT
     function getLocationAndSubmit(formId, inputId) {
         const coordsInput = document.getElementById(inputId);
         const form = document.getElementById(formId);
-        
-        // Show a "loading" state on the button
         const btn = form.querySelector('button');
-        const originalText = btn.innerText;
-        btn.innerText = "Locating...";
+        
+        btn.innerHTML = `
+            <span class="flex items-center justify-center gap-2">
+                <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Locating...
+            </span>
+        `;
         btn.disabled = true;
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    coordsInput.value = `Lat: ${position.coords.latitude.toFixed(4)}, Lon: ${position.coords.longitude.toFixed(4)}`;
+                    coordsInput.value = `Lat: ${position.coords.latitude}, Lon: ${position.coords.longitude}`; 
                     form.submit();
                 },
                 (error) => {
-                    console.warn("Geolocation failed:", error.message);
-                    coordsInput.value = "Location Denied";
+                    let errorMsg = "Location Denied";
+                    if (error.code === 2) errorMsg = "Position Unavailable";
+                    if (error.code === 3) errorMsg = "Timeout";
+                    coordsInput.value = errorMsg;
                     form.submit();
                 },
-                { timeout: 8000, enableHighAccuracy: true }
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         } else {
             coordsInput.value = "Browser Not Supported";
@@ -156,20 +160,15 @@
         }
     }
 
-    // Timer logic remains the same
     {% if active_log %}
     (function() {
-        // Use a more robust date parsing for the timer
-        // We use the date from the server to avoid local machine time drift
-        const punchInStr = "{{ active_log.clock_in.strftime('%Y-%m-%d %H:%M:%S') }}";
-        const startTime = new Date(punchInStr.replace(/-/g, '/')); 
+        // We use the raw server timestamp to prevent JS date parsing errors
+        const startTime = new Date("{{ active_log.clock_in.isoformat() }}"); 
 
         function updateTimer() {
             const now = new Date();
-            let diff = now - startTime;
-            
-            // If the difference is negative (timezone issues), default to 0
-            if (diff < 0) diff = 0; 
+            // Math.abs handles potential slight timezone differences between server/client
+            let diff = Math.abs(now - startTime); 
             
             const h = Math.floor(diff / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);

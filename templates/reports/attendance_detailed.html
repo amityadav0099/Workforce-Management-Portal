@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Attendance Detailed Report</h1>
+    <p class="text-slate-500 font-medium tracking-tight">Full company-wide attendance logs and location data.</p>
+</div>
+
+<div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-100">
+                    <th class="px-8 py-5 font-bold">Employee</th>
+                    <th class="px-8 py-5 font-bold">Date</th>
+                    <th class="px-8 py-5 font-bold">Status</th>
+                    <th class="px-8 py-5 font-bold">Clock In/Out</th>
+                    <th class="px-8 py-5 font-bold">Duration</th>
+                    <th class="px-8 py-5 font-bold text-center">Locations & Maps</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for log in logs %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-8 py-5 text-sm font-bold text-slate-700">{{ log.user.email }}</td>
+                    <td class="px-8 py-5 text-sm text-slate-600">
+                        {{ log.date.strftime('%d %b, %Y') if log.date else 'N/A' }}
+                    </td>
+                    <td class="px-8 py-5">
+                        {% if log.clock_out %}
+                            <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold">Completed</span>
+                        {% else %}
+                            <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-8 py-5 text-sm text-slate-500 font-mono">
+                        {{ log.formatted_in }} - {{ log.formatted_out }}
+                    </td>
+                    <td class="px-8 py-5">
+                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            {{ log.display_duration }}
+                        </span>
+                    </td>
+                    <td class="px-8 py-5 text-[10px] text-slate-400 leading-tight">
+                        <div class="flex flex-col gap-2 min-w-[200px]">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="truncate w-40">
+                                    <span class="font-bold text-slate-500">IN:</span> 
+                                    <span class="address-text" data-coords="{{ log.location }}">
+                                        {{ log.location or 'Unknown' }}
+                                    </span>
+                                </div>
+                                {% if log.location and 'Lat:' in log.location %}
+                                <button onclick="openInGoogleMaps('{{ log.location }}')" class="p-1 hover:bg-blue-50 rounded text-blue-500 transition-colors" title="View on Map">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                </button>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="truncate w-40">
+                                    <span class="font-bold text-slate-500">OUT:</span> 
+                                    <span class="address-text" data-coords="{{ log.location_out }}">
+                                        {{ log.location_out or 'N/A' }}
+                                    </span>
+                                </div>
+                                {% if log.location_out and 'Lat:' in log.location_out %}
+                                <button onclick="openInGoogleMaps('{{ log.location_out }}')" class="p-1 hover:bg-rose-50 rounded text-rose-500 transition-colors" title="View on Map">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Function to open Google Maps
+function openInGoogleMaps(rawCoords) {
+    if (!rawCoords || !rawCoords.includes('Lat:')) return;
+    const cleanCoords = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${cleanCoords}`, '_blank');
+}
+
+// Reverse Geocoding Logic (Coordinates to Address)
+document.addEventListener("DOMContentLoaded", function() {
+    const addressElements = document.querySelectorAll('.address-text');
+    
+    addressElements.forEach(el => {
+        const rawCoords = el.getAttribute('data-coords');
+        
+        if (!rawCoords || !rawCoords.includes('Lat:')) return;
+
+        const cleanStr = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
+        const coords = cleanStr.split(',');
+        const lat = coords[0].trim();
+        const lon = coords[1].trim();
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.display_name) {
+                    const parts = data.display_name.split(',');
+                    // Takes the first two parts of the address for a clean look
+                    const shortAddress = parts[0] + (parts[1] ? ', ' + parts[1] : '');
+                    el.innerText = shortAddress;
+                    el.title = data.display_name;
+                    el.classList.add('text-slate-700', 'font-medium');
+                }
+            })
+            .catch(err => console.error("Geocoding failed:", err));
+    });
+});
+</script>
+{% endblock %}

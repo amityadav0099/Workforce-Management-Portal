@@ -55,10 +55,12 @@
 
                         <td class="px-8 py-5">
                             <div class="flex flex-col gap-1">
-                                <span class="text-[11px] font-black text-emerald-600 uppercase">In: {{ log.clock_in.strftime('%I:%M:%S %p') }}</span>
-                                <span class="text-[11px] font-black text-rose-600 uppercase">
-                                    Out: {{ log.clock_out.strftime('%I:%M:%S %p') if log.clock_out else 'Active' }}
-                                </span>
+                                <span class="text-[11px] font-black text-emerald-600 uppercase">
+            In: {{ log.formatted_in }}
+        </span>
+        <span class="text-[11px] font-black text-rose-600 uppercase">
+            Out: {{ log.formatted_out }}
+        </span>
                             </div>
                         </td>
 
