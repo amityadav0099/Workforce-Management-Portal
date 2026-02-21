@@ -31,7 +31,7 @@ def download_payslip(slip_id):
         payslip = PayrollRecord.query.get_or_404(slip_id)
         
         # 2. Render the HTML template specifically designed for PDF
-        html = render_template('payslips/payslip_pdf_template.html', payslip=payslip)
+        html = render_template('payslips/pdf_template.html', payslip=payslip)
         
         # 3. Handle Binary Path for Public Server (Render/Linux) vs Local (Windows)
         if platform.system() == "Windows":
