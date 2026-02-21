@@ -276,32 +276,31 @@ def forgot_password():
         email = request.form.get('email').strip()
         user = User.query.filter_by(email=email).first()
         
-        # Security: Always flash success to prevent email enumeration
         if user:
             try:
-                # 1. Generate Timed Token (30 min expiry handled in reset_token)
+                # 1. Generate Timed Token (30 min)
                 s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
                 token = s.dumps(user.email, salt='password-reset-salt')
                 
-                # 2. Build absolute Reset URL
+                # 2. Build Reset URL
                 reset_url = url_for('accounts.reset_token', token=token, _external=True)
                 
-                # 3. Create Message - MUST use the authorized MAIL_USERNAME as sender
+                # 3. Create Message (Sender MUST match MAIL_USERNAME)
                 msg = Message(
                     subject='Password Reset Request - T3X Connect',
                     sender=current_app.config.get('MAIL_USERNAME'),
                     recipients=[user.email]
                 )
                 
-                msg.body = f"Hello,\n\nTo reset your password for T3X Connect, click the link below:\n{reset_url}\n\nThis link will expire in 30 minutes.\n\nIf you did not request this, please ignore this email."
+                msg.body = f"To reset your password, visit the link below:\n{reset_url}\n\nExpires in 30 mins."
                 
-                # 4. Send
+                # 4. Send - This is where the SIGKILL/Timeout occurs if server is wrong
                 mail.send(msg)
                 flash("An email has been sent with instructions to reset your password.", "info")
             except Exception as e:
-                # This captures the [Errno -2] if the server name is wrong in Config
-                print(f"CRITICAL MAIL ERROR: {str(e)}")
-                flash("The email service is temporarily unavailable. Please try again later.", "rose")
+                # This will show you exactly what Google is rejecting in Render Logs
+                print(f"SMTP ERROR: {str(e)}")
+                flash("Mail service error. Please try again later.", "rose")
         else:
             flash("An email has been sent with instructions to reset your password.", "info")
             
@@ -313,7 +312,6 @@ def forgot_password():
 def reset_token(token):
     try:
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        # Token valid for 1800 seconds (30 minutes)
         email = s.loads(token, salt='password-reset-salt', max_age=1800)
     except Exception:
         flash('The reset link is invalid or has expired.', 'rose')
@@ -321,18 +319,17 @@ def reset_token(token):
 
     if request.method == 'POST':
         password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+        confirm = request.form.get('confirm_password')
 
-        if password != confirm_password:
+        if password != confirm:
             flash('Passwords do not match.', 'rose')
             return render_template("accounts/reset_password.html", token=token)
 
         user = User.query.filter_by(email=email).first()
         if user:
-            # Use your User model's password hashing method if available
             user.password = generate_password_hash(password)
             db.session.commit()
-            flash('Your password has been updated! You can now log in.', 'success')
+            flash('Your password has been updated!', 'success')
             return redirect(url_for('accounts.login'))
 
     return render_template("accounts/reset_password.html", token=token)
