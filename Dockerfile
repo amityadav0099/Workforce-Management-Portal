@@ -14,5 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Start the application
 CMD ["gunicorn", "app:app"]
 
-HR_Portal_Secure_Key_2026
-omfs pgcg mprh pwau
+
