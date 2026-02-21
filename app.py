@@ -80,6 +80,10 @@ def index():
 def login_redirect():
     return redirect(url_for('accounts.login'))
 
+@app.route("/logout")
+def logout_redirect():
+    # Redirects to the logout logic within the accounts blueprint
+    return redirect(url_for('accounts.logout'))
 
 @app.route("/register")
 def register_redirect():
@@ -107,12 +111,14 @@ def forgot_password():
                 mail.send(msg)
                 flash('A reset link has been sent to your email!', 'success')
             except Exception as e:
-                print(f"Mail Error: {str(e)}")
+                # Logs detailed network errors for debugging
+                print(f"Mail Error: {str(e)}") 
                 flash(f'Error sending email. Please check SMTP settings.', 'danger')
         else:
             flash('Email not found.', 'danger')
         return redirect(url_for('accounts.login'))
     
+    # Path ensures template is found in subfolder
     return render_template('accounts/forgot_password.html')
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
@@ -138,16 +144,18 @@ def reset_password(token):
 def fix_db():
     try:
         from sqlalchemy import text
-        # Fixes missing columns on existing Render Postgres tables
+        # Specifically fixes the 'hr_comment' error shown in logs
         db.session.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS hr_comment TEXT"))
+        
+        # General maintenance for attendance columns
         db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
         db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
         
-        db.create_all() 
         db.session.commit()
-        return "Database Migration Successful! ✅"
+        return "Database Migration Successful! Column 'hr_comment' is now present. ✅"
     except Exception as e:
         return f"Error updating database: {str(e)} ❌"
 
 if __name__ == "__main__":
+    # Ensure debug is False for production stability
     app.run(debug=False)
