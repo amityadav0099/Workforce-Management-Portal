@@ -54,7 +54,7 @@ login_manager.login_view = 'accounts.login'
 
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# --- REGISTER ALL BLUEPRINTS ---
+# --- REGISTER ALL 8 BLUEPRINTS ---
 app.register_blueprint(leaves_bp)
 app.register_blueprint(payslips_bp)
 app.register_blueprint(accounts_bp) 
@@ -83,7 +83,6 @@ def login_redirect():
 
 @app.route("/logout")
 def logout_redirect():
-    # Redirects to the logout logic inside the accounts blueprint
     return redirect(url_for('accounts.logout'))
 
 @app.route("/register")
@@ -99,23 +98,22 @@ def dashboard_redirect():
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        # Increase timeout to prevent 'getaddrinfo failed' on Render
+        # Solving 'getaddrinfo failed' by extending connection window
         socket.setdefaulttimeout(30) 
         email = request.form.get('email')
         user = User.query.filter_by(email=email).first()
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             link = url_for('reset_password', token=token, _external=True)
-            msg = Message('HR Portal: Password Reset Request', recipients=[email])
+            msg = Message('HR Portal: Password Reset', recipients=[email])
             msg.body = f"To reset your password, visit: {link}"
-            msg.html = f"<b>HR Portal</b><br><br>Click here: <a href='{link}'>Reset Password</a>"
+            msg.html = f"<p>Reset Link: <a href='{link}'>Click Here</a></p>"
             try:
                 mail.send(msg)
                 flash('A reset link has been sent to your email!', 'success')
             except Exception as e:
-                # Logs SMTP detail to Render terminal
                 print(f"SMTP Error: {str(e)}") 
-                flash(f'Error sending email. Check server configuration.', 'danger')
+                flash(f'Error sending email. Check SMTP settings.', 'danger')
         else:
             flash('Email not found.', 'danger')
         return redirect(url_for('accounts.login'))
@@ -128,7 +126,7 @@ def reset_password(token):
     try:
         email = s.loads(token, salt='password-reset-salt', max_age=1800)
     except:
-        flash('The reset link is invalid or has expired!', 'danger')
+        flash('Link expired.', 'danger')
         return redirect(url_for('forgot_password'))
 
     if request.method == 'POST':
@@ -136,30 +134,29 @@ def reset_password(token):
         if user:
             user.set_password(request.form.get('password'))
             db.session.commit()
-            flash('Password updated successfully.', 'success')
+            flash('Password updated!', 'success')
             return redirect(url_for('accounts.login'))
     return render_template('accounts/reset_with_new_password.html')
 
-# ================= AGGRESSIVE DATABASE REPAIR =================
+# ================= COMPREHENSIVE DATABASE REPAIR =================
 
 @app.route('/fix-db')
 def fix_db():
     try:
-        # Using a direct connection to bypass ORM sync issues
+        # Using a direct connection to force changes into Render's Postgres
         with db.engine.connect() as conn:
-            # Add missing columns found in your logs
+            # Fixes both specific columns causing your 500 errors
             conn.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS hr_comment TEXT"))
             conn.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP"))
             
-            # Additional safety columns for attendance
+            # Attendance fixes
             conn.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
             conn.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
             
             conn.commit()
-        return "Database Repair Successful! Missing columns added. ✅"
+        return "Database fully updated! 'hr_comment' and 'resolved_at' are now active. ✅"
     except Exception as e:
-        return f"Database Repair Failed: {str(e)} ❌"
+        return f"Database Fix Failed: {str(e)} ❌"
 
 if __name__ == "__main__":
-    # Ensure debug is off for production stability
     app.run(debug=False)
