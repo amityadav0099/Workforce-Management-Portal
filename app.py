@@ -11,6 +11,7 @@ from accounts.decorators import login_required
 from datetime import datetime
 import os
 import socket
+from sqlalchemy import text
 from dotenv import load_dotenv
 
 # Blueprint Imports
@@ -27,7 +28,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# --- DATABASE CONFIGURATION (RENDER COMPATIBILITY) ---
+# --- DATABASE CONFIGURATION ---
 uri = os.getenv("DB_URL") 
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -36,14 +37,14 @@ app.config["SQLALCHEMY_DATABASE_URI"] = uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') 
 
-# --- EMAIL CONFIGURATION ---
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+# --- EMAIL CONFIGURATION (Updated for hr@tricorniotec.com) ---
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER') # Ensure this is smtp.tricorniotec.com or your provider's host
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 465))
 app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'True') == 'True'
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'False') == 'True'
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USER') 
+app.config['MAIL_USERNAME'] = 'hr@tricorniotec.com' 
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASS')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USER'))
+app.config['MAIL_DEFAULT_SENDER'] = 'hr@tricorniotec.com'
 
 # Initialize Extensions
 db.init_app(app)
@@ -82,7 +83,6 @@ def login_redirect():
 
 @app.route("/logout")
 def logout_redirect():
-    # Redirects to the logout logic within the accounts blueprint
     return redirect(url_for('accounts.logout'))
 
 @app.route("/register")
@@ -98,27 +98,28 @@ def dashboard_redirect():
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        socket.setdefaulttimeout(15)
+        # Extended timeout to prevent 'getaddrinfo failed' on Render
+        socket.setdefaulttimeout(30) 
         email = request.form.get('email')
         user = User.query.filter_by(email=email).first()
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             link = url_for('reset_password', token=token, _external=True)
-            msg = Message('HR Portal: Password Reset Request', recipients=[email])
+            msg = Message('HR Portal: Password Reset', recipients=[email])
             msg.body = f"To reset your password, visit: {link}"
-            msg.html = f"<b>HR Portal Reset</b><br><br>Click here: <a href='{link}'>Reset Password</a>"
+            msg.html = f"<p>Please click the link to reset your password: <a href='{link}'>Reset Link</a></p>"
             try:
                 mail.send(msg)
                 flash('A reset link has been sent to your email!', 'success')
             except Exception as e:
-                # Logs detailed network errors for debugging
-                print(f"Mail Error: {str(e)}") 
-                flash(f'Error sending email. Please check SMTP settings.', 'danger')
+                # Log the specific network error to Render terminal
+                print(f"SMTP Error: {str(e)}") 
+                flash(f'Error sending email. Please verify SMTP settings for tricorniotec.com.', 'danger')
         else:
-            flash('Email not found.', 'danger')
+            flash('Email not found in our records.', 'danger')
         return redirect(url_for('accounts.login'))
     
-    # Path ensures template is found in subfolder
+    # Path explicitly set to folder to avoid TemplateNotFound
     return render_template('accounts/forgot_password.html')
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
@@ -138,24 +139,20 @@ def reset_password(token):
             return redirect(url_for('accounts.login'))
     return render_template('accounts/reset_with_new_password.html')
 
-# ================= DATABASE MIGRATION TOOL =================
+# ================= FORCED DATABASE REPAIR =================
 
 @app.route('/fix-db')
 def fix_db():
     try:
-        from sqlalchemy import text
-        # Specifically fixes the 'hr_comment' error shown in logs
-        db.session.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS hr_comment TEXT"))
-        
-        # General maintenance for attendance columns
-        db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
-        db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
-        
-        db.session.commit()
-        return "Database Migration Successful! Column 'hr_comment' is now present. ✅"
+        # Uses direct engine connection to bypass ORM session lock
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS hr_comment TEXT"))
+            conn.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
+            conn.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
+            conn.commit()
+        return "Database Repair Successful! Column 'hr_comment' is now live. ✅"
     except Exception as e:
-        return f"Error updating database: {str(e)} ❌"
+        return f"Database Repair Failed: {str(e)} ❌"
 
 if __name__ == "__main__":
-    # Ensure debug is False for production stability
     app.run(debug=False)
