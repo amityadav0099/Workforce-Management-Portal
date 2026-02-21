@@ -12,6 +12,8 @@ Password Recovery: Secure password reset functionality using itsdangerous tokens
 
 Modern UI: Responsive front-end designed with Tailwind CSS and rendered using Jinja2 templates.
 
+
+
 🛠️ Technical Stack
 Backend: Python 3.x, Flask
 

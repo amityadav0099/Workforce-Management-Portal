@@ -1,22 +1,22 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-from datetime import datetime
 from extensions import db
-from accounts.models import User, EmployeeProfile
+from accounts.models import User, EmployeeProfile, Task, LeaveRequest
 from accounts.decorators import login_required, role_required
 from attendance.models import Attendance
+from sqlalchemy import func
+from extensions import mail
+from flask_mail import Message
+import secrets
 import os
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from flask_login import login_user, logout_user, current_user
 import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
 
-# Blueprint definition
 accounts_bp = Blueprint("accounts", __name__, url_prefix="/accounts")
-
 UPLOAD_FOLDER = "static/uploads/profile"
-
-# --- AUTHENTICATION ROUTES ---
 
 @accounts_bp.route("/register", methods=["GET", "POST"])
 def register():
@@ -43,6 +43,7 @@ def login():
         password = request.form.get("password")
         role = request.form.get("role")
         user = User.query.filter_by(email=email).first()
+        
         if user and user.check_password(password):
             if user.role != role:
                 flash(f"Unauthorized. You are not registered as {role}.", "rose")
@@ -50,9 +51,15 @@ def login():
             if not user.is_active:
                 flash("This account has been deactivated.", "rose")
                 return redirect(url_for("accounts.login"))
+            
+            # CRITICAL FIX: Establish Flask-Login Session
+            login_user(user)
+            
+            # Keep these for your custom logic if needed
             session["user_id"] = user.id
             session["email"] = user.email
             session["role"] = user.role
+            
             flash("Welcome back!", "success")
             return redirect(url_for("accounts.dashboard"))
         else:
@@ -62,10 +69,9 @@ def login():
 
 @accounts_bp.route("/logout")
 def logout():
-    session.clear() 
+    logout_user() # Clears Flask-Login session
+    session.clear() # Clears manual session
     return redirect(url_for("accounts.login"))
-
-
 
 
 # --- USER ROUTES ---
@@ -74,21 +80,19 @@ def logout():
 @login_required 
 def dashboard():
     user_id = session.get("user_id")
-    active_log = Attendance.query.filter_by(user_id=user_id, clock_out=None).first()
     
+    # --- 1. Your Existing Time Tracking Logic ---
+    active_log = Attendance.query.filter_by(user_id=user_id, clock_out=None).first()
     display_duration = "00:00:00"
     
     if active_log and active_log.clock_in:
         now_ist = datetime.now(IST)
-        
-        # Now that the DB is DATETIME, this check will succeed!
         if active_log.clock_in.tzinfo is None:
             localized_start = IST.localize(active_log.clock_in)
         else:
             localized_start = active_log.clock_in
 
         duration = now_ist - localized_start
-        
         total_seconds = int(duration.total_seconds())
         if total_seconds < 0: total_seconds = 0
         
@@ -96,9 +100,26 @@ def dashboard():
         m, s = divmod(remainder, 60)
         display_duration = f"{h:02}:{m:02}:{s:02}"
 
-    return render_template("accounts/dashboard.html", 
-                       active_log=active_log, 
-                       display_duration=display_duration)
+    # --- 2. New Dynamic Stats Logic ---
+    
+    # Get Pending Tasks Count
+    pending_count = Task.query.filter_by(user_id=user_id, status='Pending').count()
+
+    # Calculate Leave Balance (Annual Quota of 24 - Approved Leaves)
+    annual_quota = 24
+    used_leaves = db.session.query(func.sum(LeaveRequest.days_requested)).filter(
+        LeaveRequest.user_id == user_id,
+        LeaveRequest.status == 'Approved'
+    ).scalar() or 0
+    leave_balance = annual_quota - used_leaves
+
+    return render_template(
+        "accounts/dashboard.html", 
+        active_log=active_log, 
+        display_duration=display_duration,
+        pending_count=pending_count,
+        leave_balance=leave_balance
+    )
 
 @accounts_bp.route('/clock-in', methods=['POST'])
 @login_required
@@ -246,3 +267,41 @@ def toggle_user(user_id):
     status = "activated" if user.is_active else "deactivated"
     flash(f"User {user.email} has been {status}.", "success")
     return redirect(url_for('accounts.employee_list'))
+
+@accounts_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email")
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            # Generate a temporary token (or use your User model's token method)
+            token = secrets.token_hex(16) 
+            # Ideally, save this token to your User model with an expiry time
+            
+            msg = Message('Password Reset Request - T3X Connect',
+                          recipients=[email])
+            
+            # Using _external=True to generate an absolute URL (http://...)
+            reset_url = url_for('accounts.reset_token', token=token, _external=True)
+            
+            msg.body = f"To reset your password, visit the following link: {reset_url}"
+            
+            try:
+                mail.send(msg)
+                flash("An email has been sent with instructions to reset your password.", "info")
+            except Exception as e:
+                print(f"Mail Error: {e}")
+                flash("Error sending email. Please contact support.", "rose")
+        else:
+            flash("If that email exists in our system, a reset link has been sent.", "info")
+            
+        return redirect(url_for("accounts.login"))
+        
+    # Corrected template path to match your folder structure
+    return render_template("accounts/forgot_password.html")
+
+@accounts_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_token(token):
+    # Logic to verify token and update password goes here
+    return render_template("accounts/reset_password.html", token=token)

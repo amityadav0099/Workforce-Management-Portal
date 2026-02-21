@@ -18,11 +18,18 @@ payroll_bp = Blueprint("payroll", __name__, url_prefix="/payroll")
 def manage_payroll():
     """Main dashboard with full-year filter."""
     selected_month = request.args.get('month', datetime.now().strftime('%B 2026'))
-    month_options = [datetime(2026, m, 1).strftime('%B 2026') for m in range(1, 13)]
+    
+    # Get all employees to show in the list
+    employees = User.query.filter_by(role='employee').all()
+    
+    # Get all records for this month to check against the employee list
     payroll_records = PayrollRecord.query.filter_by(month=selected_month).all()
+    
+    month_options = [datetime(2026, m, 1).strftime('%B 2026') for m in range(1, 13)]
     
     return render_template(
         "payroll/manage.html", 
+        employees=employees, # Added this
         payroll_records=payroll_records, 
         selected_month=selected_month,
         month_options=month_options
@@ -43,11 +50,14 @@ def generate_salary(user_id):
         net = basic + allow - deduct
 
         if record:
+            # Update existing instead of creating new
             record.basic_salary = basic
             record.allowances = allow
             record.deductions = deduct
             record.net_salary = net
+            flash(f"Updated existing slip for {user.email}", "info")
         else:
+            # Create new only if it doesn't exist
             record = PayrollRecord(
                 user_id=user_id,
                 month=current_month,
@@ -58,9 +68,14 @@ def generate_salary(user_id):
                 status="Processed"
             )
             db.session.add(record)
+            flash(f"New slip generated for {user.email}", "success")
         
-        db.session.commit()
-        flash(f"Payroll updated successfully for {user.email}", "success")
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash("Database error: Duplicate entry prevented.", "danger")
+            
         return redirect(url_for('payroll.manage_payroll', month=current_month))
         
     return render_template("payroll/generate_form.html", user=user, record=record)
@@ -72,7 +87,11 @@ def process_all_salaries():
     employees = User.query.filter_by(role='employee').all()
     target_month = request.form.get('month')
 
+    skipped = 0
+    added = 0
+
     for emp in employees:
+        # Strict check before adding
         existing = PayrollRecord.query.filter_by(user_id=emp.id, month=target_month).first()
         if not existing:
             basic, allow = 5000.0, 500.0
@@ -84,9 +103,12 @@ def process_all_salaries():
                 status="Processed"
             )
             db.session.add(new_record)
+            added += 1
+        else:
+            skipped += 1
     
     db.session.commit()
-    flash(f"Salaries processed for {target_month}!", "success")
+    flash(f"Processed: {added} | Skipped Duplicates: {skipped} for {target_month}", "success")
     return redirect(url_for('payroll.manage_payroll', month=target_month))
 
 @payroll_bp.route("/delete/<int:record_id>", methods=["POST"])

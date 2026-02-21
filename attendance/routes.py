@@ -32,15 +32,23 @@ def clock_in():
     now_ist = datetime.now(IST)
     today = now_ist.date()
     
-    existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
+   
     
+    # Get location from form
+    user_location = request.form.get('location')
+    
+    # Strict check: If JS failed or was bypassed and no location sent
+    if not user_location or user_location in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
+        flash("Location access is required to clock in.", "rose")
+        return redirect(url_for("accounts.dashboard"))
+    existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
+
     if not existing:
-        user_location = request.form.get('location', 'Location Not Captured')
         new_entry = Attendance(
             user_id=user_id, 
             date=today,
             clock_in=now_ist, 
-            location=user_location
+            location=user_location # Storing in 'location' column
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -58,11 +66,16 @@ def clock_out():
     
     record = Attendance.query.filter_by(user_id=user_id, date=today).first()
     
+    # Get location from form
+    user_location_out = request.form.get('location')
+
+    if not user_location_out or user_location_out in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
+        flash("Location access is required to clock out.", "rose")
+        return redirect(url_for("accounts.dashboard"))
+    
     if record and not record.clock_out:
-        # Capture location from the form
-        user_location_out = request.form.get('location', 'Location Not Captured')
         record.clock_out = now_ist
-        record.location_out = user_location_out
+        record.location_out = user_location_out # Storing in 'location_out' column
         db.session.commit()
         flash("Clocked out successfully! 👋", "success")
     else:
@@ -78,10 +91,8 @@ def manage_attendance():
     now_naive = now_ist.replace(tzinfo=None)
 
     for log in attendance_list:
-        # --- Handle Clock In ---
         if log.clock_in:
             if isinstance(log.clock_in, timedelta):
-                # Convert duration back to a datetime using the row's date
                 dt_in = datetime.combine(log.date, (datetime.min + log.clock_in).time())
             else:
                 dt_in = log.clock_in.replace(tzinfo=None) if log.clock_in.tzinfo else log.clock_in
@@ -90,7 +101,6 @@ def manage_attendance():
             dt_in = None
             log.formatted_in = "N/A"
 
-        # --- Handle Clock Out ---
         if log.clock_out:
             if isinstance(log.clock_out, timedelta):
                 dt_out = datetime.combine(log.date, (datetime.min + log.clock_out).time())
@@ -98,11 +108,9 @@ def manage_attendance():
                 dt_out = log.clock_out.replace(tzinfo=None) if log.clock_out.tzinfo else log.clock_out
             log.formatted_out = dt_out.strftime('%I:%M:%S %p')
         else:
-            # If still active and it's today, use 'now' for duration
             dt_out = now_naive if log.date == now_ist.date() else None
             log.formatted_out = "Active" if log.date == now_ist.date() else "Missed"
 
-        # --- Handle Duration ---
         if dt_in and dt_out:
             log.display_duration = calculate_hms(dt_in, dt_out)
         else:
@@ -118,7 +126,6 @@ def attendance_history():
     now_naive = datetime.now(IST).replace(tzinfo=None)
 
     for log in logs:
-        # Use same logic as manage_attendance for consistency
         if log.clock_in:
             if isinstance(log.clock_in, timedelta):
                 dt_in = datetime.combine(log.date, (datetime.min + log.clock_in).time())

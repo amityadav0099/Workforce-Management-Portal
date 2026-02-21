@@ -1,11 +1,12 @@
 from extensions import db
 from datetime import datetime
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # =========================
 # USER / AUTH MODEL
 # =========================
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -87,3 +88,34 @@ class EmployeeProfile(db.Model):
     
     def __getitem__(self, key):
         return getattr(self, key)
+    
+# accounts/models.py
+
+# ... keep your User and EmployeeProfile classes as they are ...
+
+# =========================
+# TASK MODEL
+# =========================
+class Task(db.Model):
+    __tablename__ = "tasks"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    status = db.Column(db.String(20), default="Pending") # Pending, Completed
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Task {self.title} - {self.status}>"
+
+# =========================
+# LEAVE REQUEST MODEL
+# =========================
+class LeaveRequest(db.Model):
+    __tablename__ = "leave_requests"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    days_requested = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default="Approved") # Pending, Approved, Rejected
+    reason = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

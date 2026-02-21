@@ -10,6 +10,8 @@ class Grievance(db.Model):
     category = db.Column(db.String(50), nullable=False, default="General") 
     description = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default="Open")
+    hr_comment = db.Column(db.Text)
+    resolved_at = db.Column(db.DateTime)
     created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

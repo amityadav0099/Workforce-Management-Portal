@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}My Grievances | T3X Connect{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">My Support Requests</h1>
+    <p class="text-slate-500 font-medium tracking-tight">Track the progress of your filed grievances and view HR feedback.</p>
+</div>
+
+<div class="grid gap-6">
+    {% for g in my_grievances %}
+    <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
+        <div class="p-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">Ticket #{{ g.id }}</span>
+                        <span class="text-slate-400 text-xs font-medium">{{ g.created_at.strftime('%d %b, %Y') if g.created_at else 'N/A' }}</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900">{{ g.title }}</h3>
+                </div>
+                
+                <div>
+                    {% if g.status == "Open" %}
+                        <span class="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100">🟡 Under Review</span>
+                    {% elif g.status == "Rejected" %}
+                        <span class="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100">🔴 Declined</span>
+                    {% else %}
+                        <span class="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">🟢 Resolved</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-slate-50/50 rounded-2xl p-6 mb-6">
+                <p class="text-slate-600 text-sm leading-relaxed">{{ g.description }}</p>
+            </div>
+
+            {% if g.hr_comment %}
+            <div class="relative pl-6 border-l-4 border-blue-500 py-2">
+                <h4 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Response from HR</h4>
+                <p class="text-slate-800 text-sm font-medium italic">"{{ g.hr_comment }}"</p>
+                {% if g.resolved_at %}
+                <p class="text-[10px] text-slate-400 mt-2 font-bold">Responded on: {{ g.resolved_at.strftime('%d %b, %Y at %I:%M %p') }}</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="flex items-center gap-2 text-slate-400 italic text-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Waiting for HR review...
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-[2rem] border border-slate-100 p-20 text-center">
+        <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">No Grievances Found</h3>
+        <p class="text-slate-400 mb-8">You haven't filed any support requests yet.</p>
+        <a href="{{ url_for('grievances.add_grievance') }}" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all">
+            File a Grievance
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Grievances | T3X Connect{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Grievances & Support</h1>
+    <p class="text-slate-500 font-medium tracking-tight">Address employee concerns and support tickets.</p>
+</div>
+
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-6">
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('grievances.list_grievances') }}" 
+               class="px-4 py-2 rounded-xl text-sm font-bold transition-all {% if not request.args.get('status') %}bg-slate-900 text-white shadow-lg{% else %}bg-slate-50 text-slate-500 hover:bg-slate-100{% endif %}">
+                📂 All <span class="ml-1 opacity-60">({{ total_count }})</span>
+            </a>
+
+            <a href="{{ url_for('grievances.list_grievances', status='Open') }}" 
+               class="px-4 py-2 rounded-xl text-sm font-bold transition-all {% if request.args.get('status') == 'Open' %}bg-amber-500 text-white shadow-lg{% else %}bg-slate-50 text-slate-500 hover:bg-slate-100{% endif %}">
+                🟡 Pending <span class="ml-1 opacity-60">({{ pending_count }})</span>
+            </a>
+
+            <a href="{{ url_for('grievances.list_grievances', status='Resolved') }}" 
+               class="px-4 py-2 rounded-xl text-sm font-bold transition-all {% if request.args.get('status') == 'Resolved' %}bg-emerald-500 text-white shadow-lg{% else %}bg-slate-50 text-slate-500 hover:bg-slate-100{% endif %}">
+                🟢 Resolved <span class="ml-1 opacity-60">({{ resolved_count }})</span>
+            </a>
+        </div>
+
+        {% if session['role'] == "hr" %}
+        <div class="relative w-full md:w-72">
+            <input type="text" id="searchInput" placeholder="Search grievances..." onkeyup="searchGrievance()"
+                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all">
+            <div class="absolute left-3 top-2.5 text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="p-0 overflow-x-auto">
+        <table class="w-full text-left border-collapse" id="grievanceTable">
+            <thead>
+                <tr class="bg-slate-50/50">
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">#</th>
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Description & Feedback</th>
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                    {% if session['role'] == "hr" %}
+                    <th class="px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for g in grievances %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-8 py-5 text-sm font-bold text-slate-400">{{ loop.index }}</td>
+                    <td class="px-8 py-5 text-sm font-bold text-slate-900">{{ g.title }}</td>
+                    <td class="px-8 py-5 text-sm text-slate-500 max-w-xs">
+                        <div class="truncate">{{ g.description }}</div>
+                        {% if g.hr_comment %}
+                        <div class="mt-2 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[11px] text-slate-600">
+                            <span class="font-black text-blue-600 uppercase">HR Note:</span> {{ g.hr_comment }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-8 py-5">
+                        {% if g.status == "Open" %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">Open</span>
+                        {% elif g.status == "Rejected" %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-100">Rejected</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100">Resolved</span>
+                        {% endif %}
+                    </td>
+                    {% if session['role'] == "hr" %}
+                    <td class="px-8 py-5 text-right">
+                        {% if g.status == "Open" %}
+                        <button onclick="openResolveModal('{{ g.id }}', '{{ g.title }}')" class="text-xs font-black text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-lg transition-all">
+                            Review
+                        </button>
+                        {% else %}
+                        <span class="text-slate-300 font-bold text-sm italic">Closed</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-8 py-20 text-center">
+                        <p class="text-slate-400 font-medium italic">No grievances found matching your request.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="resolveModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+        <form id="resolveForm" method="POST">
+            <div class="p-8">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 mb-1">Resolve Grievance</h3>
+                <p id="modalSubject" class="text-slate-500 text-sm mb-6 font-medium truncate"></p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">HR Remarks / Feedback</label>
+                        <textarea name="hr_comment" required 
+                            class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none h-32 transition-all" 
+                            placeholder="Provide details on the resolution or reason for rejection..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mt-8">
+                    <button type="submit" name="status" value="Resolved" class="bg-emerald-600 text-white font-bold py-3.5 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">Resolve</button>
+                    <button type="submit" name="status" value="Rejected" class="bg-slate-100 text-slate-600 font-bold py-3.5 rounded-2xl hover:bg-slate-200 transition-all">Reject</button>
+                </div>
+            </div>
+        </form>
+        <button onclick="closeResolveModal()" class="w-full py-4 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-t border-slate-100 hover:text-slate-600 transition-colors">Close Window</button>
+    </div>
+</div>
+
+<script>
+function openResolveModal(id, title) {
+    const modal = document.getElementById('resolveModal');
+    const form = document.getElementById('resolveForm');
+    const subjectLabel = document.getElementById('modalSubject');
+    
+    // Set dynamic content
+    form.action = `/grievances/resolve/${id}`;
+    subjectLabel.innerText = "Subject: " + title;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeResolveModal() {
+    const modal = document.getElementById('resolveModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function searchGrievance() {
+    let input = document.getElementById("searchInput").value.toLowerCase();
+    let rows = document.querySelectorAll("#grievanceTable tbody tr");
+
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        if(row.cells.length > 1) {
+            row.style.display = text.includes(input) ? "" : "none";
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Break Report | T3X Connect{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div class="p-8 border-b border-slate-50 flex justify-between items-center">
+            <div>
+                <h3 class="text-2xl font-black text-slate-800">Event & Break Summary</h3>
+                <p class="text-slate-400 text-sm">Review detailed employee activity logs</p>
+            </div>
+            <button class="px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
+                Export Report
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50">
+                        <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Employee</th>
+                        <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th>
+                        <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Reason</th>
+                        <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Time Range</th>
+                        <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Duration</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for item in report %}
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="px-8 py-6">
+                            <p class="font-black text-slate-700">{{ item.employee }}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="text-slate-500 font-medium">{{ item.date }}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase">
+                                {{ item.reason }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="text-slate-400 text-xs font-bold">{{ item.time }}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="font-black text-slate-800">{{ item.duration }}</p>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-8 py-20 text-center">
+                            <div class="flex flex-col items-center">
+                                <p class="text-slate-400 font-bold">No break records found.</p>
+                                <p class="text-slate-300 text-xs mt-1">Try adding a new break event from the dashboard.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

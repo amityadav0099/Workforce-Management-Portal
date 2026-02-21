@@ -2,7 +2,6 @@
 
 {% block title %}Manage Payroll | HR Portal{% endblock %}
 
-
 {% block content %}
 
 <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
@@ -54,10 +53,11 @@
     </div>
 
     <div class="overflow-x-auto">
-        <table class="w-full text-left">
+        <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-50">
                     <th class="px-8 py-4 font-bold">Employee</th>
+                    <th class="px-8 py-4 font-bold text-center">Status</th>
                     <th class="px-8 py-4 font-bold">Base Salary</th>
                     <th class="px-8 py-4 font-bold">Allowances</th>
                     <th class="px-8 py-4 font-bold">Deductions</th>
@@ -66,36 +66,64 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-                {% for record in payroll_records %}
+                {# Loop through ALL employees passed from the route #}
+                {% for emp in employees %}
+                    {# Filter the records list to find if this employee has a slip for the selected month #}
+                    {% set record = payroll_records | selectattr("user_id", "equalto", emp.id) | first %}
+                
                 <tr class="hover:bg-slate-50/50 transition-colors group">
                     <td class="px-8 py-5">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                                {{ record.user.email[0].upper() }}
+                            <div class="w-9 h-9 rounded-xl {{ 'bg-emerald-50 text-emerald-600' if record else 'bg-blue-50 text-blue-600' }} flex items-center justify-center font-bold text-xs">
+                                {{ emp.email[0].upper() }}
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-sm font-semibold text-slate-700">{{ record.user.email }}</span>
-                                <span class="text-[10px] text-slate-400 font-bold">ID: #00{{ record.user_id }}</span>
+                                <span class="text-sm font-semibold text-slate-700">{{ emp.email }}</span>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-tight">ID: #00{{ emp.id }}</span>
                             </div>
                         </div>
                     </td>
-                    <td class="px-8 py-5 text-sm font-medium text-slate-600">₹{{ "{:,.2f}".format(record.basic_salary) }}</td>
-                    <td class="px-8 py-5 text-sm font-medium text-emerald-600">+ ₹{{ "{:,.2f}".format(record.allowances) }}</td>
-                    <td class="px-8 py-5 text-sm font-medium text-rose-500">- ₹{{ "{:,.2f}".format(record.deductions) }}</td>
-                    <td class="px-8 py-5 text-sm font-bold text-slate-900">₹{{ "{:,.2f}".format(record.net_salary) }}</td>
+
+                    <td class="px-8 py-5 text-center">
+                        {% if record %}
+                            <span class="text-[9px] bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-black uppercase tracking-wider">Processed ✓</span>
+                        {% else %}
+                            <span class="text-[9px] bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-black uppercase tracking-wider">Pending</span>
+                        {% endif %}
+                    </td>
+
+                    {% if record %}
+                        <td class="px-8 py-5 text-sm font-medium text-slate-600">₹{{ "{:,.2f}".format(record.basic_salary) }}</td>
+                        <td class="px-8 py-5 text-sm font-medium text-emerald-600">+ ₹{{ "{:,.2f}".format(record.allowances) }}</td>
+                        <td class="px-8 py-5 text-sm font-medium text-rose-500">- ₹{{ "{:,.2f}".format(record.deductions) }}</td>
+                        <td class="px-8 py-5 text-sm font-bold text-slate-900">₹{{ "{:,.2f}".format(record.net_salary) }}</td>
+                    {% else %}
+                        <td class="px-8 py-5 text-sm font-medium text-slate-300 italic">--</td>
+                        <td class="px-8 py-5 text-sm font-medium text-slate-300 italic">--</td>
+                        <td class="px-8 py-5 text-sm font-medium text-slate-300 italic">--</td>
+                        <td class="px-8 py-5 text-sm font-bold text-slate-300">₹0.00</td>
+                    {% endif %}
+
                     <td class="px-8 py-5 text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{{ url_for('payroll.download_payslip', record_id=record.id) }}" class="text-[10px] font-bold text-emerald-600 border border-emerald-100 px-2 py-1 rounded hover:bg-emerald-50 transition-all">PDF</a>
-                            <a href="{{ url_for('payroll.generate_salary', user_id=record.user_id) }}" class="text-[10px] font-bold text-blue-600 border border-blue-100 px-2 py-1 rounded hover:bg-blue-50 transition-all">Edit</a>
-                            <form action="{{ url_for('payroll.delete_payroll', record_id=record.id) }}" method="POST" onsubmit="return confirm('Delete this record?')" class="inline">
-                                <button type="submit" class="text-[10px] font-bold text-rose-500 border border-rose-100 px-2 py-1 rounded hover:bg-rose-50 transition-all">Delete</button>
-                            </form>
+                            {% if record %}
+                                <a href="{{ url_for('payroll.download_payslip', record_id=record.id) }}" class="text-[10px] font-bold text-emerald-600 border border-emerald-100 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-all">PDF</a>
+                                <a href="{{ url_for('payroll.generate_salary', user_id=emp.id) }}" class="text-[10px] font-bold text-blue-600 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-all">Edit</a>
+                                <form action="{{ url_for('payroll.delete_payroll', record_id=record.id) }}" method="POST" onsubmit="return confirm('Delete this record? This cannot be undone.')" class="inline">
+                                    <button type="submit" class="text-[10px] font-bold text-rose-500 border border-rose-100 px-3 py-1.5 rounded-lg hover:bg-rose-50 transition-all">Delete</button>
+                                </form>
+                            {% else %}
+                                <a href="{{ url_for('payroll.generate_salary', user_id=emp.id) }}" 
+                                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all shadow-md shadow-blue-50">
+                                    Generate
+                                </a>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="px-8 py-20 text-center text-slate-400 italic text-sm">No payroll records found for {{ selected_month }}.</td>
+                    <td colspan="7" class="px-8 py-20 text-center text-slate-400 italic text-sm">No employees found in the system.</td>
                 </tr>
                 {% endfor %}
             </tbody>
