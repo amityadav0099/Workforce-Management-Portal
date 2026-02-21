@@ -41,6 +41,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 465))
 app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'True') == 'True'
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'False') == 'True'
 app.config['MAIL_USERNAME'] = 'hr@tricorniotec.com' 
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASS')
 app.config['MAIL_DEFAULT_SENDER'] = 'hr@tricorniotec.com'
@@ -97,21 +98,22 @@ def dashboard_redirect():
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        # Extend timeout for Render network
+        # Extend timeout for Render's networking to prevent getaddrinfo failures
         socket.setdefaulttimeout(30) 
         email = request.form.get('email')
         user = User.query.filter_by(email=email).first()
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             link = url_for('reset_password', token=token, _external=True)
-            msg = Message('HR Portal: Password Reset', recipients=[email])
-            msg.body = f"Reset Link: {link}"
+            msg = Message('Workforce Portal: Password Reset', recipients=[email])
+            msg.body = f"Reset your password by visiting: {link}"
+            msg.html = f"<p>Please use this link to reset your password: <a href='{link}'>Reset Password</a></p>"
             try:
                 mail.send(msg)
                 flash('A reset link has been sent to your email!', 'success')
             except Exception as e:
                 print(f"SMTP Error: {str(e)}") 
-                flash(f'Error sending email. Check logs.', 'danger')
+                flash(f'Error sending email. Please check server settings.', 'danger')
         else:
             flash('Email not found.', 'danger')
         return redirect(url_for('accounts.login'))
@@ -123,7 +125,7 @@ def reset_password(token):
     try:
         email = s.loads(token, salt='password-reset-salt', max_age=1800)
     except:
-        flash('Link expired.', 'danger')
+        flash('Expired or invalid reset link.', 'danger')
         return redirect(url_for('forgot_password'))
 
     if request.method == 'POST':
@@ -131,28 +133,27 @@ def reset_password(token):
         if user:
             user.set_password(request.form.get('password'))
             db.session.commit()
-            flash('Password updated!', 'success')
+            flash('Password updated successfully!', 'success')
             return redirect(url_for('accounts.login'))
     return render_template('accounts/reset_with_new_password.html')
 
-# ================= FORCED DATABASE REPAIR =================
+# ================= CRITICAL DATABASE REPAIR =================
 
 @app.route('/fix-db')
 def fix_db():
     try:
-        # Use a RAW connection to force changes into the Postgres instance
+        # Using a raw connection to ensure ALTER commands are committed to Render Postgres
         with db.engine.connect() as conn:
-            # Fixing the specific missing columns causing your 500 errors
+            # Fixes for 'grievances' table
             conn.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS hr_comment TEXT"))
             conn.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP"))
             
-            # Additional stability columns
+            # Fixes for 'attendance' table
             conn.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
             conn.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
             
-            # Explicitly commit the transaction
             conn.commit()
-        return "Database Repair Successful! All missing columns are now live. ✅"
+        return "Database Repair Successful! All missing columns injected. ✅"
     except Exception as e:
         return f"Database Repair Failed: {str(e)} ❌"
 
