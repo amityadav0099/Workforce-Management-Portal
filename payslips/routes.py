@@ -1,9 +1,8 @@
-from flask import Blueprint, render_template, session, make_response
-from flask import render_template, make_response, current_app, flash, redirect, url_for
-from payslips.models import Payslip
+from flask import Blueprint, render_template, session, make_response, current_app, flash, redirect, url_for
 from accounts.decorators import login_required
 import pdfkit
 import platform
+import os
 from payroll.models import PayrollRecord
 
 payslips_bp = Blueprint("payslips", __name__, url_prefix="/payslips")
@@ -27,21 +26,26 @@ def view_payslips():
 @login_required
 def download_payslip(slip_id):
     try:
-        # 1. Fetch payslip data from your database
-        payslip = PayrollRecord.query.get_or_404(slip_id)
+        # 1. Fetch payslip data - named 'slip' to match your template
+        slip = PayrollRecord.query.get_or_404(slip_id)
         
-        # 2. Render the HTML template specifically designed for PDF
-        html = render_template('payslips/pdf_template.html', payslip=payslip)
+        # 2. Render HTML template
+        html = render_template('payslips/pdf_template.html', slip=slip)
         
-        # 3. Handle Binary Path for Public Server (Render/Linux) vs Local (Windows)
+        # 3. Handle Binary Path
         if platform.system() == "Windows":
             path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-            config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
         else:
-            # On Render/Ubuntu, it is usually just 'wkhtmltopdf' in the PATH
-            config = pdfkit.configuration(wkhtmltopdf='/usr/bin/wkhtmltopdf')
+            # Standard path for Linux/Render
+            path_wkhtmltopdf = '/usr/bin/wkhtmltopdf'
 
-        # 4. PDF Options for better layout
+        # Safety check: if binary doesn't exist, try local path
+        if not os.path.exists(path_wkhtmltopdf) and platform.system() != "Windows":
+            path_wkhtmltopdf = '/usr/local/bin/wkhtmltopdf'
+
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+
+        # 4. PDF Options
         options = {
             'page-size': 'Letter',
             'margin-top': '0.75in',
@@ -49,20 +53,22 @@ def download_payslip(slip_id):
             'margin-bottom': '0.75in',
             'margin-left': '0.75in',
             'encoding': "UTF-8",
-            'no-outline': None
+            'no-outline': None,
+            'enable-local-file-access': None
         }
 
-        # 5. Generate PDF
+        # 5. Generate PDF binary
         pdf = pdfkit.from_string(html, False, configuration=config, options=options)
         
         # 6. Build the response
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=payslip_{payslip.id}.pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=payslip_{slip_id}.pdf'
         
         return response
 
     except Exception as e:
-        print(f"PDF Error: {str(e)}")
-        flash("PDF service is currently unavailable on this server. Please contact HR.", "danger")
-        return redirect(url_for('payroll.manage_payroll'))
+        # Log exact error to Render console
+        print(f"CRITICAL PDF ERROR: {str(e)}")
+        flash(f"PDF Service Error: {str(e)}", "rose")
+        return redirect(url_for('payslips.view_payslips'))
