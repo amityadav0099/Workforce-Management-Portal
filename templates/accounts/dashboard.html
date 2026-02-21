@@ -20,7 +20,6 @@
     .fc-button-primary { background-color: #0f172a !important; border: none !important; border-radius: 12px !important; }
     .fc-toolbar-title { font-weight: 900 !important; color: #1e293b !important; font-size: 1.1rem !important; }
     .fc { font-family: inherit; font-size: 0.85rem; }
-    .swal2-html-container { overflow: visible !important; }
 </style>
 
 <div class="max-w-6xl mx-auto pb-20">
@@ -86,38 +85,36 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div class="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative min-h-[250px] flex flex-col justify-center">
-            <div class="relative z-10">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-black text-slate-800">Today's Shift Insights</h3>
-                    {% if active_log %}
-                        <span class="flex items-center gap-1.5 text-emerald-500 text-[10px] font-black uppercase tracking-widest">
-                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> Live Tracking
-                        </span>
-                    {% endif %}
-                </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col justify-center">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black text-slate-800">Today's Shift Insights</h3>
                 {% if active_log %}
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                        <p class="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-widest">Clocked In At</p>
-                        <p class="text-xl font-black text-slate-700">{{ active_log.clock_in.strftime('%I:%M %p') }}</p>
-                    </div>
-                    <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
-                        <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
-                        <p id="timerDisplay" class="text-xl font-black text-blue-600">00:00:00</p>
-                    </div>
-                </div>
-                {% else %}
-                <div class="flex flex-col items-center justify-center py-6 text-center">
-                    <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
-                        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <p class="text-slate-400 font-bold">No active shift detected.</p>
-                    <p class="text-[10px] text-slate-300 mt-1 uppercase font-black tracking-widest">Punch in to start timer</p>
-                </div>
+                    <span class="flex items-center gap-1.5 text-emerald-500 text-[10px] font-black uppercase tracking-widest">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> Live Tracking
+                    </span>
                 {% endif %}
             </div>
+            {% if active_log %}
+            <div class="grid grid-cols-2 gap-6">
+                <div class="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                    <p class="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-widest">Clocked In At</p>
+                    <p class="text-xl font-black text-slate-700">{{ active_log.clock_in.strftime('%I:%M %p') }}</p>
+                </div>
+                <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
+                    <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
+                    <p id="timerDisplay" class="text-xl font-black text-blue-600">00:00:00</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center py-6 text-center">
+                <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <p class="text-slate-400 font-bold">No active shift detected.</p>
+                <p class="text-[10px] text-slate-300 mt-1 uppercase font-black tracking-widest">Punch in to start timer</p>
+            </div>
+            {% endif %}
         </div>
 
         <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
@@ -132,28 +129,75 @@
                     <p class="font-bold text-slate-800">Leave</p>
                 </a>
             </div>
+
+            <div class="mt-8 pt-8 border-t border-slate-50 flex justify-between">
+                <div class="text-center px-4">
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Leave Balance</p>
+                    <p class="text-xl font-black text-slate-800">{{ leave_balance|default('0') }} Days</p>
+                </div>
+                <div class="text-center px-4">
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Pending Tasks</p>
+                    <p class="text-xl font-black {% if pending_count and pending_count > 0 %}text-amber-500{% else %}text-emerald-500{% endif %}">
+                        {{ '%02d' % pending_count if pending_count else '00' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <div>
+                <p class="text-[10px] text-slate-400 font-black uppercase">Month Attendance</p>
+                <p class="font-black text-slate-800">{{ month_attendance_count|default('0') }} Days</p>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
+            <div class="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <p class="text-[10px] text-slate-400 font-black uppercase">Avg. Shift</p>
+                <p class="font-black text-slate-800">8h 15m</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
+            <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            </div>
+            <div>
+                <p class="text-[10px] text-slate-400 font-black uppercase">Announcements</p>
+                <p class="font-black text-slate-800">03 New</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
+            <div class="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <div>
+                <p class="text-[10px] text-slate-400 font-black uppercase">Late Marks</p>
+                <p class="font-black text-slate-800">{{ late_marks|default('00') }}</p>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+    // 1. Location and Submission Handler
     function getLocationAndSubmit(formId, inputId) {
         const coordsInput = document.getElementById(inputId);
         const form = document.getElementById(formId);
         const btn = form.querySelector('button');
         const originalHtml = btn.innerHTML;
 
-        // Force reset the value to ensure fresh permission check
-        coordsInput.value = "";
-
-        btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Securing Location...</span>`;
+        btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Locating...</span>`;
         btn.disabled = true;
-
-        const geoOptions = {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0 // FORCE FRESH GPS LOCK
-        };
 
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
@@ -164,45 +208,42 @@
                 (e) => {
                     btn.innerHTML = originalHtml;
                     btn.disabled = false;
-                    let errorMsg = "Please allow location access to continue.";
-                    if (e.code === 1) errorMsg = "Permission denied. Reset browser location settings.";
-                    Swal.fire({ icon: 'warning', title: 'Location Required', text: errorMsg });
+                    Swal.fire({ icon: 'error', title: 'Location Error', text: 'Please enable GPS/Location permissions in your browser.' });
                 },
-                geoOptions
+                { enableHighAccuracy: true, timeout: 10000 }
             );
+        } else {
+            Swal.fire({ icon: 'error', title: 'Unsupported', text: 'Geolocation is not supported by your browser.' });
         }
     }
 
+    // 2. Real-time Live Timer
     {% if active_log %}
     (function() {
-        // Fix for 5:30 offset: Treat server time as a direct string to avoid JS auto-conversion
         const startTimeStr = "{{ active_log.clock_in.strftime('%Y-%m-%dT%H:%M:%S') }}";
-        const startTime = new Date(startTimeStr); 
+        const startTime = new Date(startTimeStr);
         
         function updateTimer() {
             const now = new Date();
-            // We need to compare "now" in the same "naive" way the server sees it
-            // or use a simpler offset calculation.
-            let diff = now - startTime; 
-
+            let diff = now - startTime;
             if (diff < 0) diff = 0;
 
             const h = Math.floor(diff / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);
             const s = Math.floor((diff % 60000) / 1000);
             
-            const display = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-            const el = document.getElementById('timerDisplay');
-            if (el) el.innerText = display;
+            document.getElementById('timerDisplay').innerText = 
+                `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
         setInterval(updateTimer, 1000);
         updateTimer();
     })();
     {% endif %}
 
+    // 3. Break Calendar Logic
     function openCalendarModal() {
         Swal.fire({
-            title: 'Workforce Break Log',
+            title: 'Break & Attendance Planner',
             html: '<div id="modalCalendar" style="min-height: 400px;"></div>',
             width: '850px',
             showConfirmButton: false,
@@ -211,28 +252,13 @@
                 var calendarEl = document.getElementById('modalCalendar');
                 var calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
-                    height: 'auto',
                     events: '/planner/get_events',
                     dateClick: function(info) {
                         Swal.fire({
-                            title: 'Log Break/Time',
-                            html: `
-                                <div class="text-left space-y-4">
-                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Date: ${info.dateStr}</p>
-                                    <input id="swal-reason" class="swal2-input w-full m-0" placeholder="Reason (e.g. Lunch Break)">
-                                    <div class="grid grid-cols-2 gap-4 mt-4">
-                                        <div>
-                                            <label class="text-[10px] uppercase font-black text-slate-400">Start</label>
-                                            <input type="time" id="swal-start" class="swal2-input w-full m-0">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] uppercase font-black text-slate-400">End</label>
-                                            <input type="time" id="swal-end" class="swal2-input w-full m-0">
-                                        </div>
-                                    </div>
-                                </div>
-                            `,
+                            title: 'Schedule Break',
+                            html: `<input id="swal-reason" class="swal2-input" placeholder="Break Reason"><div class="grid grid-cols-2 gap-4"><input type="time" id="swal-start" class="swal2-input"><input type="time" id="swal-end" class="swal2-input"></div>`,
                             showCancelButton: true,
+                            confirmButtonText: 'Save Break',
                             preConfirm: () => {
                                 return {
                                     reason: document.getElementById('swal-reason').value,

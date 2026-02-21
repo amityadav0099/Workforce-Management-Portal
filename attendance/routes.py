@@ -18,28 +18,27 @@ def get_readable_address(coords_str):
         return "Location N/A"
     
     try:
-        # Extract just the numbers from the string "Lat: 28.123, Lon: 77.123"
+        # Extract coordinates from string format "Lat: X, Lon: Y"
         parts = coords_str.replace("Lat:", "").replace("Lon:", "").split(",")
         lat = parts[0].strip()
         lon = parts[1].strip()
 
-        # Call OpenStreetMap Nominatim API
+        # Reverse Geocoding via Nominatim (OpenStreetMap)
         headers = {'User-Agent': 'HR_Portal_App_v1'}
         url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
         response = requests.get(url, headers=headers, timeout=5)
         data = response.json()
         
-        # Return the address or fallback to coordinates if not found
         return data.get('display_name', coords_str)
     except Exception as e:
         print(f"Geocoding error: {e}")
-        return coords_str # Fallback to raw coordinates
+        return coords_str
 
 def calculate_hms(dt_in, dt_out):
     if not dt_in or not dt_out:
         return "N/A"
     
-    # Ensure both are naive to avoid tzoffset issues during subtraction
+    # Standardize to naive for subtraction
     naive_in = dt_in.replace(tzinfo=None) if hasattr(dt_in, 'tzinfo') and dt_in.tzinfo else dt_in
     naive_out = dt_out.replace(tzinfo=None) if hasattr(dt_out, 'tzinfo') and dt_out.tzinfo else dt_out
     
@@ -63,10 +62,9 @@ def clock_in():
     raw_location = request.form.get('location')
     
     if not raw_location or raw_location in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
-        flash("Location access is required to clock in. Please enable GPS.", "rose")
+        flash("Location access is required to clock in.", "rose")
         return redirect(url_for("accounts.dashboard"))
 
-    # Convert "Lat/Lon" to "Street Name, City"
     readable_location = get_readable_address(raw_location)
 
     existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
