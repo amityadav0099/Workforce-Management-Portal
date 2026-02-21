@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask_mail import Message
+from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 from extensions import db, login_manager, mail
 from grievances.models import Grievance
@@ -27,7 +27,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
+# --- DATABASE CONFIGURATION (RENDER COMPATIBILITY) ---
 uri = os.getenv("DB_URL") 
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -45,16 +45,13 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USER')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASS')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USER'))
 
-# --- INITIALIZE EXTENSIONS ---
+# Initialize Extensions
 db.init_app(app)
 login_manager.init_app(app)
 mail.init_app(app)
 login_manager.login_view = 'accounts.login'
 
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-
-with app.app_context():
-    db.create_all()
 
 # --- REGISTER BLUEPRINTS ---
 app.register_blueprint(leaves_bp)
@@ -83,11 +80,11 @@ def index():
 def login_redirect():
     return redirect(url_for('accounts.login'))
 
+
 @app.route("/register")
 def register_redirect():
     return redirect(url_for('accounts.register'))
 
-# This is the dashboard redirect you were looking for
 @app.route("/dashboard")
 def dashboard_redirect():
     return redirect(url_for('accounts.dashboard'))
@@ -103,15 +100,14 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             link = url_for('reset_password', token=token, _external=True)
-            msg = Message('HR Portal: Password Reset Request', 
-                          recipients=[email])
+            msg = Message('HR Portal: Password Reset Request', recipients=[email])
             msg.body = f"To reset your password, visit: {link}"
             msg.html = f"<b>HR Portal Reset</b><br><br>Click here: <a href='{link}'>Reset Password</a>"
             try:
                 mail.send(msg)
                 flash('A reset link has been sent to your email!', 'success')
             except Exception as e:
-                print(f"MAIL ERROR: {str(e)}")
+                print(f"Mail Error: {str(e)}")
                 flash(f'Error sending email. Please check SMTP settings.', 'danger')
         else:
             flash('Email not found.', 'danger')
@@ -136,17 +132,20 @@ def reset_password(token):
             return redirect(url_for('accounts.login'))
     return render_template('accounts/reset_with_new_password.html')
 
-# ================= APP STARTUP =================
+# ================= DATABASE MIGRATION TOOL =================
 
 @app.route('/fix-db')
 def fix_db():
     try:
         from sqlalchemy import text
+        # Fixes missing columns on existing Render Postgres tables
+        db.session.execute(text("ALTER TABLE grievances ADD COLUMN IF NOT EXISTS hr_comment TEXT"))
         db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_in VARCHAR(255)"))
         db.session.execute(text("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS location_out VARCHAR(255)"))
+        
         db.create_all() 
         db.session.commit()
-        return "Database updated successfully! ✅"
+        return "Database Migration Successful! ✅"
     except Exception as e:
         return f"Error updating database: {str(e)} ❌"
 
