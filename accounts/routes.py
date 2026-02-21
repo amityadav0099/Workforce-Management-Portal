@@ -276,32 +276,32 @@ def forgot_password():
         email = request.form.get('email').strip()
         user = User.query.filter_by(email=email).first()
         
-        # We always redirect to login to prevent "email harvesting"
+        # Security: Always flash success to prevent email enumeration
         if user:
             try:
-                # 1. Secure Token Generation (Identity + Timestamp)
+                # 1. Generate Timed Token (30 min expiry handled in reset_token)
                 s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
                 token = s.dumps(user.email, salt='password-reset-salt')
                 
-                # 2. Build Reset URL
+                # 2. Build absolute Reset URL
                 reset_url = url_for('accounts.reset_token', token=token, _external=True)
                 
-                # 3. Create Message (Explicitly define sender for custom domains)
+                # 3. Create Message - MUST use the authorized MAIL_USERNAME as sender
                 msg = Message(
-                    subject='Password Reset Request - HR Portal',
+                    subject='Password Reset Request - T3X Connect',
                     sender=current_app.config.get('MAIL_USERNAME'),
                     recipients=[user.email]
                 )
                 
-                msg.body = f"To reset your password, visit the following link: {reset_url}\n\nIf you did not make this request, please ignore this email."
+                msg.body = f"Hello,\n\nTo reset your password for T3X Connect, click the link below:\n{reset_url}\n\nThis link will expire in 30 minutes.\n\nIf you did not request this, please ignore this email."
                 
                 # 4. Send
                 mail.send(msg)
                 flash("An email has been sent with instructions to reset your password.", "info")
             except Exception as e:
-                # Log the specific SMTP/DNS error to Render console
+                # This captures the [Errno -2] if the server name is wrong in Config
                 print(f"CRITICAL MAIL ERROR: {str(e)}")
-                flash("Error sending email. Please contact support.", "rose")
+                flash("The email service is temporarily unavailable. Please try again later.", "rose")
         else:
             flash("An email has been sent with instructions to reset your password.", "info")
             
@@ -312,8 +312,8 @@ def forgot_password():
 @accounts_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_token(token):
     try:
-        # Verify token and check if it's older than 30 minutes (1800 seconds)
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        # Token valid for 1800 seconds (30 minutes)
         email = s.loads(token, salt='password-reset-salt', max_age=1800)
     except Exception:
         flash('The reset link is invalid or has expired.', 'rose')
@@ -329,10 +329,10 @@ def reset_token(token):
 
         user = User.query.filter_by(email=email).first()
         if user:
-            # Update password with hash
+            # Use your User model's password hashing method if available
             user.password = generate_password_hash(password)
             db.session.commit()
-            flash('Your password has been updated! You can now log in.', 'info')
+            flash('Your password has been updated! You can now log in.', 'success')
             return redirect(url_for('accounts.login'))
 
     return render_template("accounts/reset_password.html", token=token)
