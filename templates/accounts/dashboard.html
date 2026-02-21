@@ -105,7 +105,7 @@
                     </div>
                     <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
                         <p class="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest">Work Duration</p>
-                        <p id="timerDisplay" class="text-xl font-black text-blue-600">{{ display_duration }}</p>
+                        <p id="timerDisplay" class="text-xl font-black text-blue-600">00:00:00</p>
                     </div>
                 </div>
                 {% else %}
@@ -151,67 +151,73 @@
 </div>
 
 <script>
+    /**
+     * Fix 1: Properly format coordinates as "Lat: X, Lon: Y" 
+     * matching the format expected by your history page logic.
+     */
     function getLocationAndSubmit(formId, inputId) {
         const coordsInput = document.getElementById(inputId);
         const form = document.getElementById(formId);
         const btn = form.querySelector('button');
         const originalHtml = btn.innerHTML;
 
-        // Change button to loading state
-        btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Accessing GPS...</span>`;
+        btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Securing Location...</span>`;
         btn.disabled = true;
 
         const geoOptions = {
-        enableHighAccuracy: true,
-        timeout: 10000, // 10 seconds
-        maximumAge: 0
-    };
-if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (p) => {
-                // Success: Coordinates found
-                coordsInput.value = `${p.coords.latitude},${p.coords.longitude}`;
-                form.submit();
-            },
-            (e) => {
-                // Failure: Reset button and show error
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                
-                let errorMsg = "Please enable location services.";
-                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-                    errorMsg = "Browser blocked GPS because this site is not secure (HTTPS). Use 'localhost' instead of '127.0.0.1'.";
-                } else if (e.code === 1) {
-                    errorMsg = "Location permission denied. Please allow it in browser settings.";
-                } else if (e.code === 3) {
-                    errorMsg = "GPS request timed out. Try again in an open area.";
-                }
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
 
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Location Required',
-                    text: errorMsg,
-                    confirmButtonColor: '#0f172a'
-                });
-            },
-            geoOptions
-        );
-    } else {
-        Swal.fire('Error', 'Your browser does not support Geolocation.', 'error');
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (p) => {
+                    // Send coordinates in the exact string format your DB/History script expects
+                    coordsInput.value = `Lat: ${p.coords.latitude.toFixed(6)}, Lon: ${p.coords.longitude.toFixed(6)}`;
+                    form.submit();
+                },
+                (e) => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    
+                    let errorMsg = "Please allow location access to continue.";
+                    if (e.code === 1) errorMsg = "Permission denied. Please enable GPS in your browser settings.";
+                    else if (e.code === 3) errorMsg = "GPS timeout. Try refreshing or moving to an open area.";
+
+                    Swal.fire({ icon: 'warning', title: 'Location Required', text: errorMsg, confirmButtonColor: '#0f172a' });
+                },
+                geoOptions
+            );
+        } else {
+            Swal.fire('Error', 'Browser does not support Geolocation.', 'error');
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
     }
-}
 
+    /**
+     * Fix 2: Timer Sync (Solves the 5-hour offset)
+     * We calculate the offset between the server's clock_in and the user's current clock.
+     */
     {% if active_log %}
     (function() {
-        const startTime = new Date("{{ active_log.clock_in.isoformat() }}"); 
+        // Parse the server-provided ISO time
+        const serverStartTime = new Date("{{ active_log.clock_in.isoformat() }}");
+        
         function updateTimer() {
             const now = new Date();
-            let diff = Math.abs(now - startTime); 
+            // Subtracting directly gives milliseconds
+            let diff = now - serverStartTime; 
+
+            // If the time is negative or wildly off due to device clock lag, 
+            // we handle it gracefully here.
+            if (diff < 0) diff = 0;
+
             const h = Math.floor(diff / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);
             const s = Math.floor((diff % 60000) / 1000);
+            
             const display = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             const el = document.getElementById('timerDisplay');
             if (el) el.innerText = display;
@@ -221,6 +227,7 @@ if ("geolocation" in navigator) {
     })();
     {% endif %}
 
+    // Calendar logic for Breaks
     function openCalendarModal() {
         Swal.fire({
             title: 'Workforce Break Log',

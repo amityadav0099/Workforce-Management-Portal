@@ -19,6 +19,11 @@ from grievances.routes import grievances_bp
 from reports.routes import reports_bp
 from attendance.routes import attendance_bp
 from planner.routes import planner_bp
+from datetime import datetime
+import pytz
+
+IST = pytz.timezone('Asia/Kolkata')
+current_time_ist = datetime.now(IST)
 
 load_dotenv()
 

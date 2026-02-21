@@ -10,9 +10,12 @@ attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendance")
 IST = pytz.timezone('Asia/Kolkata')
 
 def calculate_hms(dt_in, dt_out):
-    # Force both to be naive to prevent timezone mismatch errors
-    naive_in = dt_in.replace(tzinfo=None) if dt_in.tzinfo else dt_in
-    naive_out = dt_out.replace(tzinfo=None) if dt_out.tzinfo else dt_out
+    if not dt_in or not dt_out:
+        return "N/A"
+    
+    # Ensure both are naive to avoid tzoffset issues during subtraction
+    naive_in = dt_in.replace(tzinfo=None) if hasattr(dt_in, 'tzinfo') and dt_in.tzinfo else dt_in
+    naive_out = dt_out.replace(tzinfo=None) if hasattr(dt_out, 'tzinfo') and dt_out.tzinfo else dt_out
     
     diff = naive_out - naive_in
     total_seconds = int(diff.total_seconds())
@@ -22,33 +25,31 @@ def calculate_hms(dt_in, dt_out):
         
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-    
     return f"{hours}h {minutes}m {seconds}s"
 
 @attendance_bp.route("/clock-in", methods=["POST"])
 @login_required
 def clock_in():
     user_id = session.get("user_id")
+    # Generate time in IST
     now_ist = datetime.now(IST)
     today = now_ist.date()
     
-   
-    
-    # Get location from form
     user_location = request.form.get('location')
     
-    # Strict check: If JS failed or was bypassed and no location sent
     if not user_location or user_location in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
-        flash("Location access is required to clock in.", "rose")
+        flash("Location access is required to clock in. Please enable GPS.", "rose")
         return redirect(url_for("accounts.dashboard"))
+
     existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
 
     if not existing:
+        # Note: We store the IST time. Ensure your DB column is DateTime.
         new_entry = Attendance(
             user_id=user_id, 
             date=today,
             clock_in=now_ist, 
-            location=user_location # Storing in 'location' column
+            location=user_location 
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -65,8 +66,6 @@ def clock_out():
     today = now_ist.date()
     
     record = Attendance.query.filter_by(user_id=user_id, date=today).first()
-    
-    # Get location from form
     user_location_out = request.form.get('location')
 
     if not user_location_out or user_location_out in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
@@ -75,7 +74,7 @@ def clock_out():
     
     if record and not record.clock_out:
         record.clock_out = now_ist
-        record.location_out = user_location_out # Storing in 'location_out' column
+        record.location_out = user_location_out
         db.session.commit()
         flash("Clocked out successfully! 👋", "success")
     else:
@@ -87,34 +86,26 @@ def clock_out():
 @role_required('hr')
 def manage_attendance():
     attendance_list = Attendance.query.order_by(Attendance.date.desc()).all()
-    now_ist = datetime.now(IST)
-    now_naive = now_ist.replace(tzinfo=None)
+    now_ist = datetime.now(IST).replace(tzinfo=None)
 
     for log in attendance_list:
-        if log.clock_in:
-            if isinstance(log.clock_in, timedelta):
-                dt_in = datetime.combine(log.date, (datetime.min + log.clock_in).time())
-            else:
-                dt_in = log.clock_in.replace(tzinfo=None) if log.clock_in.tzinfo else log.clock_in
-            log.formatted_in = dt_in.strftime('%I:%M:%S %p')
-        else:
-            dt_in = None
-            log.formatted_in = "N/A"
+        # Helper logic to handle potential timedelta objects from MySQL TIME columns
+        def process_time(val, log_date):
+            if isinstance(val, timedelta):
+                return datetime.combine(log_date, (datetime.min + val).time())
+            return val.replace(tzinfo=None) if val and hasattr(val, 'tzinfo') and val.tzinfo else val
 
+        dt_in = process_time(log.clock_in, log.date)
+        dt_out = process_time(log.clock_out, log.date) if log.clock_out else (now_ist if log.date == now_ist.date() else None)
+
+        log.formatted_in = dt_in.strftime('%I:%M:%S %p') if dt_in else "N/A"
+        
         if log.clock_out:
-            if isinstance(log.clock_out, timedelta):
-                dt_out = datetime.combine(log.date, (datetime.min + log.clock_out).time())
-            else:
-                dt_out = log.clock_out.replace(tzinfo=None) if log.clock_out.tzinfo else log.clock_out
             log.formatted_out = dt_out.strftime('%I:%M:%S %p')
         else:
-            dt_out = now_naive if log.date == now_ist.date() else None
             log.formatted_out = "Active" if log.date == now_ist.date() else "Missed"
 
-        if dt_in and dt_out:
-            log.display_duration = calculate_hms(dt_in, dt_out)
-        else:
-            log.display_duration = "N/A"
+        log.display_duration = calculate_hms(dt_in, dt_out)
 
     return render_template('attendance/manage_attendance.html', attendance_list=attendance_list)
 
@@ -126,19 +117,20 @@ def attendance_history():
     now_naive = datetime.now(IST).replace(tzinfo=None)
 
     for log in logs:
+        # Standardizing time objects for the history view
         if log.clock_in:
             if isinstance(log.clock_in, timedelta):
                 dt_in = datetime.combine(log.date, (datetime.min + log.clock_in).time())
             else:
-                dt_in = log.clock_in.replace(tzinfo=None) if log.clock_in.tzinfo else log.clock_in
+                dt_in = log.clock_in.replace(tzinfo=None) if hasattr(log.clock_in, 'tzinfo') and log.clock_in.tzinfo else log.clock_in
             
             if log.clock_out:
                 if isinstance(log.clock_out, timedelta):
                     dt_out = datetime.combine(log.date, (datetime.min + log.clock_out).time())
                 else:
-                    dt_out = log.clock_out.replace(tzinfo=None) if log.clock_out.tzinfo else log.clock_out
+                    dt_out = log.clock_out.replace(tzinfo=None) if hasattr(log.clock_out, 'tzinfo') and log.clock_out.tzinfo else log.clock_out
             else:
-                dt_out = now_naive
+                dt_out = now_naive if log.date == now_naive.date() else None
             
             log.display_duration = calculate_hms(dt_in, dt_out)
         else:

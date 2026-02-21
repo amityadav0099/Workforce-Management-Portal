@@ -7,6 +7,7 @@
     <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Attendance Logs</h1>
     <p class="text-slate-500 font-medium tracking-tight">Track daily clock-in/out times and locations.</p>
 </div>
+
 <div class="max-w-6xl mx-auto pb-20">
     <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
         <div class="p-8 border-b border-slate-50 flex justify-between items-center">
@@ -41,7 +42,7 @@
                         </td>
                         <td class="px-8 py-6">
                             <div class="flex flex-col gap-1">
-                                <span class="text-xs font-bold text-emerald-600">IN: {{ log.clock_in.strftime('%I:%M:%S %p') }}</span>
+                                <span class="text-xs font-bold text-emerald-600">IN: {{ log.clock_in.strftime('%I:%M:%S %p') if log.clock_in else 'N/A' }}</span>
                                 <span class="text-xs font-bold text-rose-500">
                                     OUT: {{ log.clock_out.strftime('%I:%M:%S %p') if log.clock_out else 'Active' }}
                                 </span>
@@ -91,57 +92,46 @@ document.addEventListener("DOMContentLoaded", function() {
     addressElements.forEach(el => {
         const rawCoords = el.getAttribute('data-coords');
         
-        if (!rawCoords || rawCoords.includes('Not Captured') || !rawCoords.includes('Lat:')) {
+        // Handle variations in coordinate storage
+        if (!rawCoords || rawCoords === "None" || rawCoords === "") {
             el.innerText = "Location N/A";
             return;
         }
 
-        try {
-            // Clean string: "Lat: 28.48, Lon: 77.52" -> "28.48, 77.52"
-            const cleanStr = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
-            const coords = cleanStr.split(',');
-            const lat = coords[0].trim();
-            const lon = coords[1].trim();
-
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.display_name) {
-                        const parts = data.display_name.split(',');
-                        // Show first two parts of address (Building/Street + Area)
-                        const addressSnippet = parts[0] + (parts[1] ? ', ' + parts[1] : '');
-                        el.innerText = addressSnippet;
-                        el.title = data.display_name; // Full address on hover
-                    } else {
-                        el.innerText = "Address Not Found";
-                    }
-                })
-                .catch(() => { el.innerText = "Network Error"; });
-        } catch (e) {
-            el.innerText = "Invalid Coords";
+        const cleanCoords = rawCoords.replace('Lat: ', '').replace(' Lon: ', '').replace('Lat:', '').replace('Lon:', '');
+        const coords = cleanCoords.split(',');
+        
+        if(coords.length < 2) {
+            el.innerText = "Location N/A";
+            return;
         }
+
+        const lat = coords[0].trim();
+        const lon = coords[1].trim();
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.display_name) {
+                    const parts = data.display_name.split(',');
+                    el.innerText = parts[0] + (parts[1] ? ', ' + parts[1] : '');
+                    el.title = data.display_name;
+                } else {
+                    el.innerText = lat + ", " + lon;
+                }
+            })
+            .catch(() => { el.innerText = lat + ", " + lon; });
     });
 });
 
-/**
- * Function to open Google Maps searching for the address name
- * instead of just numeric coordinates.
- */
 function openExactMap(button) {
     const row = button.closest('tr');
-    // Finds the address text inside the "Clock-In Address" span
     const addressElement = row.querySelector('.address-text');
-    const addressText = addressElement.innerText;
-
-    if (addressText && addressText !== "Loading..." && addressText !== "Location N/A" && addressText !== "Network Error") {
-        const query = encodeURIComponent(addressText);
-        window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
-    } else {
-        // Fallback to raw coordinates if address name hasn't loaded
-        const rawCoords = addressElement.getAttribute('data-coords');
-        const cleanCoords = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
-        window.open(`https://www.google.com/maps/search/?api=1&query=${cleanCoords}`, '_blank');
-    }
+    const rawCoords = addressElement.getAttribute('data-coords');
+    const cleanCoords = rawCoords.replace('Lat: ', '').replace(' Lon: ', '');
+    
+    // Fixed Google Maps URL
+    window.open(`https://www.google.com/maps?q=${cleanCoords}`, '_blank');
 }
 </script>
 {% endblock %}
