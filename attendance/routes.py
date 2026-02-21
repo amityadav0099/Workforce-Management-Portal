@@ -3,11 +3,37 @@ from extensions import db
 from attendance.models import Attendance
 from datetime import datetime, timedelta
 import pytz
+import requests
 from accounts.decorators import login_required, role_required
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendance")
 
 IST = pytz.timezone('Asia/Kolkata')
+
+def get_readable_address(coords_str):
+    """
+    Converts 'Lat: 28.123, Lon: 77.123' into a real street address.
+    """
+    if not coords_str or "Lat:" not in coords_str:
+        return "Location N/A"
+    
+    try:
+        # Extract just the numbers from the string "Lat: 28.123, Lon: 77.123"
+        parts = coords_str.replace("Lat:", "").replace("Lon:", "").split(",")
+        lat = parts[0].strip()
+        lon = parts[1].strip()
+
+        # Call OpenStreetMap Nominatim API
+        headers = {'User-Agent': 'HR_Portal_App_v1'}
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
+        response = requests.get(url, headers=headers, timeout=5)
+        data = response.json()
+        
+        # Return the address or fallback to coordinates if not found
+        return data.get('display_name', coords_str)
+    except Exception as e:
+        print(f"Geocoding error: {e}")
+        return coords_str # Fallback to raw coordinates
 
 def calculate_hms(dt_in, dt_out):
     if not dt_in or not dt_out:
@@ -31,25 +57,26 @@ def calculate_hms(dt_in, dt_out):
 @login_required
 def clock_in():
     user_id = session.get("user_id")
-    # Generate time in IST
     now_ist = datetime.now(IST)
     today = now_ist.date()
     
-    user_location = request.form.get('location')
+    raw_location = request.form.get('location')
     
-    if not user_location or user_location in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
+    if not raw_location or raw_location in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
         flash("Location access is required to clock in. Please enable GPS.", "rose")
         return redirect(url_for("accounts.dashboard"))
+
+    # Convert "Lat/Lon" to "Street Name, City"
+    readable_location = get_readable_address(raw_location)
 
     existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
 
     if not existing:
-        # Note: We store the IST time. Ensure your DB column is DateTime.
         new_entry = Attendance(
             user_id=user_id, 
             date=today,
             clock_in=now_ist, 
-            location=user_location 
+            location=readable_location 
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -66,15 +93,17 @@ def clock_out():
     today = now_ist.date()
     
     record = Attendance.query.filter_by(user_id=user_id, date=today).first()
-    user_location_out = request.form.get('location')
+    raw_location_out = request.form.get('location')
 
-    if not user_location_out or user_location_out in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
+    if not raw_location_out or raw_location_out in ["GPS_DENIED", "BROWSER_UNSUPPORTED"]:
         flash("Location access is required to clock out.", "rose")
         return redirect(url_for("accounts.dashboard"))
     
+    readable_location_out = get_readable_address(raw_location_out)
+
     if record and not record.clock_out:
         record.clock_out = now_ist
-        record.location_out = user_location_out
+        record.location_out = readable_location_out
         db.session.commit()
         flash("Clocked out successfully! 👋", "success")
     else:
@@ -89,7 +118,6 @@ def manage_attendance():
     now_ist = datetime.now(IST).replace(tzinfo=None)
 
     for log in attendance_list:
-        # Helper logic to handle potential timedelta objects from MySQL TIME columns
         def process_time(val, log_date):
             if isinstance(val, timedelta):
                 return datetime.combine(log_date, (datetime.min + val).time())
@@ -117,7 +145,6 @@ def attendance_history():
     now_naive = datetime.now(IST).replace(tzinfo=None)
 
     for log in logs:
-        # Standardizing time objects for the history view
         if log.clock_in:
             if isinstance(log.clock_in, timedelta):
                 dt_in = datetime.combine(log.date, (datetime.min + log.clock_in).time())

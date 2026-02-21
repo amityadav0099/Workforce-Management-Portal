@@ -132,34 +132,19 @@
                     <p class="font-bold text-slate-800">Leave</p>
                 </a>
             </div>
-            <div class="mt-8 pt-8 border-t border-slate-50 flex justify-between">
-                <div class="text-center px-4">
-                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Leave Balance</p>
-                    <p class="text-xl font-black text-slate-800">
-                        {{ leave_balance if leave_balance else '0' }} Days
-                    </p>
-                </div>
-                <div class="text-center px-4">
-                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Pending Tasks</p>
-                    <p class="text-xl font-black {% if pending_count > 0 %}text-amber-500{% else %}text-emerald-500{% endif %}">
-                        {{ '%02d' % pending_count if pending_count else '00' }}
-                    </p>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
 <script>
-    /**
-     * Fix 1: Properly format coordinates as "Lat: X, Lon: Y" 
-     * matching the format expected by your history page logic.
-     */
     function getLocationAndSubmit(formId, inputId) {
         const coordsInput = document.getElementById(inputId);
         const form = document.getElementById(formId);
         const btn = form.querySelector('button');
         const originalHtml = btn.innerHTML;
+
+        // Force reset the value to ensure fresh permission check
+        coordsInput.value = "";
 
         btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Securing Location...</span>`;
         btn.disabled = true;
@@ -167,51 +152,39 @@
         const geoOptions = {
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 0
+            maximumAge: 0 // FORCE FRESH GPS LOCK
         };
 
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (p) => {
-                    // Send coordinates in the exact string format your DB/History script expects
                     coordsInput.value = `Lat: ${p.coords.latitude.toFixed(6)}, Lon: ${p.coords.longitude.toFixed(6)}`;
                     form.submit();
                 },
                 (e) => {
                     btn.innerHTML = originalHtml;
                     btn.disabled = false;
-                    
                     let errorMsg = "Please allow location access to continue.";
-                    if (e.code === 1) errorMsg = "Permission denied. Please enable GPS in your browser settings.";
-                    else if (e.code === 3) errorMsg = "GPS timeout. Try refreshing or moving to an open area.";
-
-                    Swal.fire({ icon: 'warning', title: 'Location Required', text: errorMsg, confirmButtonColor: '#0f172a' });
+                    if (e.code === 1) errorMsg = "Permission denied. Reset browser location settings.";
+                    Swal.fire({ icon: 'warning', title: 'Location Required', text: errorMsg });
                 },
                 geoOptions
             );
-        } else {
-            Swal.fire('Error', 'Browser does not support Geolocation.', 'error');
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
         }
     }
 
-    /**
-     * Fix 2: Timer Sync (Solves the 5-hour offset)
-     * We calculate the offset between the server's clock_in and the user's current clock.
-     */
     {% if active_log %}
     (function() {
-        // Parse the server-provided ISO time
-        const serverStartTime = new Date("{{ active_log.clock_in.isoformat() }}");
+        // Fix for 5:30 offset: Treat server time as a direct string to avoid JS auto-conversion
+        const startTimeStr = "{{ active_log.clock_in.strftime('%Y-%m-%dT%H:%M:%S') }}";
+        const startTime = new Date(startTimeStr); 
         
         function updateTimer() {
             const now = new Date();
-            // Subtracting directly gives milliseconds
-            let diff = now - serverStartTime; 
+            // We need to compare "now" in the same "naive" way the server sees it
+            // or use a simpler offset calculation.
+            let diff = now - startTime; 
 
-            // If the time is negative or wildly off due to device clock lag, 
-            // we handle it gracefully here.
             if (diff < 0) diff = 0;
 
             const h = Math.floor(diff / 3600000);
@@ -227,7 +200,6 @@
     })();
     {% endif %}
 
-    // Calendar logic for Breaks
     function openCalendarModal() {
         Swal.fire({
             title: 'Workforce Break Log',
@@ -247,32 +219,27 @@
                             html: `
                                 <div class="text-left space-y-4">
                                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Date: ${info.dateStr}</p>
-                                    <input id="swal-reason" class="swal2-input w-full m-0" placeholder="Reason (e.g. Lunch Break, Meeting)">
+                                    <input id="swal-reason" class="swal2-input w-full m-0" placeholder="Reason (e.g. Lunch Break)">
                                     <div class="grid grid-cols-2 gap-4 mt-4">
                                         <div>
-                                            <label class="text-[10px] uppercase font-black text-slate-400">Start Time</label>
+                                            <label class="text-[10px] uppercase font-black text-slate-400">Start</label>
                                             <input type="time" id="swal-start" class="swal2-input w-full m-0">
                                         </div>
                                         <div>
-                                            <label class="text-[10px] uppercase font-black text-slate-400">End Time</label>
+                                            <label class="text-[10px] uppercase font-black text-slate-400">End</label>
                                             <input type="time" id="swal-end" class="swal2-input w-full m-0">
                                         </div>
                                     </div>
                                 </div>
                             `,
-                            focusConfirm: false,
                             showCancelButton: true,
-                            confirmButtonText: 'Save Entry',
-                            confirmButtonColor: '#0f172a',
                             preConfirm: () => {
-                                const reason = document.getElementById('swal-reason').value;
-                                const start = document.getElementById('swal-start').value;
-                                const end = document.getElementById('swal-end').value;
-                                if (!reason || !start || !end) {
-                                    Swal.showValidationMessage('Please fill all fields');
-                                    return false;
-                                }
-                                return { reason, start, end, date: info.dateStr };
+                                return {
+                                    reason: document.getElementById('swal-reason').value,
+                                    start: document.getElementById('swal-start').value,
+                                    end: document.getElementById('swal-end').value,
+                                    date: info.dateStr
+                                };
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
@@ -280,16 +247,7 @@
                                     method: 'POST',
                                     headers: {'Content-Type': 'application/json'},
                                     body: JSON.stringify(result.value)
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if(data.status === 'success') {
-                                        calendar.refetchEvents();
-                                        Swal.fire('Saved!', 'Break logged.', 'success');
-                                    } else {
-                                        Swal.fire('Error', data.message, 'error');
-                                    }
-                                });
+                                }).then(() => calendar.refetchEvents());
                             }
                         });
                     }
