@@ -5,6 +5,8 @@ from accounts.decorators import login_required, role_required
 from attendance.models import Attendance
 from sqlalchemy import func
 from extensions import mail
+from itsdangerous import URLSafeTimedSerializer
+from werkzeug.security import generate_password_hash
 from flask_mail import Message
 import secrets
 import os
@@ -268,40 +270,69 @@ def toggle_user(user_id):
     flash(f"User {user.email} has been {status}.", "success")
     return redirect(url_for('accounts.employee_list'))
 
-@accounts_bp.route("/forgot-password", methods=["GET", "POST"])
+@accounts_bp.route("/forgot-password", methods=['GET', 'POST'])
 def forgot_password():
-    if request.method == "POST":
-        email = request.form.get("email")
+    if request.method == 'POST':
+        email = request.form.get('email').strip()
         user = User.query.filter_by(email=email).first()
         
+        # We always redirect to login to prevent "email harvesting"
         if user:
-            # Generate a temporary token (or use your User model's token method)
-            token = secrets.token_hex(16) 
-            # Ideally, save this token to your User model with an expiry time
-            
-            msg = Message('Password Reset Request - T3X Connect',
-                          recipients=[email])
-            
-            # Using _external=True to generate an absolute URL (http://...)
-            reset_url = url_for('accounts.reset_token', token=token, _external=True)
-            
-            msg.body = f"To reset your password, visit the following link: {reset_url}"
-            
             try:
+                # 1. Secure Token Generation (Identity + Timestamp)
+                s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+                token = s.dumps(user.email, salt='password-reset-salt')
+                
+                # 2. Build Reset URL
+                reset_url = url_for('accounts.reset_token', token=token, _external=True)
+                
+                # 3. Create Message (Explicitly define sender for custom domains)
+                msg = Message(
+                    subject='Password Reset Request - HR Portal',
+                    sender=current_app.config.get('MAIL_USERNAME'),
+                    recipients=[user.email]
+                )
+                
+                msg.body = f"To reset your password, visit the following link: {reset_url}\n\nIf you did not make this request, please ignore this email."
+                
+                # 4. Send
                 mail.send(msg)
                 flash("An email has been sent with instructions to reset your password.", "info")
             except Exception as e:
-                print(f"Mail Error: {e}")
+                # Log the specific SMTP/DNS error to Render console
+                print(f"CRITICAL MAIL ERROR: {str(e)}")
                 flash("Error sending email. Please contact support.", "rose")
         else:
-            flash("If that email exists in our system, a reset link has been sent.", "info")
+            flash("An email has been sent with instructions to reset your password.", "info")
             
         return redirect(url_for("accounts.login"))
         
-    # Corrected template path to match your folder structure
     return render_template("accounts/forgot_password.html")
 
 @accounts_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_token(token):
-    # Logic to verify token and update password goes here
+    try:
+        # Verify token and check if it's older than 30 minutes (1800 seconds)
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        email = s.loads(token, salt='password-reset-salt', max_age=1800)
+    except Exception:
+        flash('The reset link is invalid or has expired.', 'rose')
+        return redirect(url_for('accounts.forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'rose')
+            return render_template("accounts/reset_password.html", token=token)
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Update password with hash
+            user.password = generate_password_hash(password)
+            db.session.commit()
+            flash('Your password has been updated! You can now log in.', 'info')
+            return redirect(url_for('accounts.login'))
+
     return render_template("accounts/reset_password.html", token=token)
